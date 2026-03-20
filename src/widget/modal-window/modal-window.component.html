@@ -1,0 +1,19 @@
+@if (opened()) {
+  <div class="modal-window" (click)="onBackdropClick($event)">
+    <div class="panel modal-window__dialog" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+      <div class="modal-window__header">
+        <div>
+          <span class="eyebrow">Форма</span>
+          <h3>{{ title() }}</h3>
+          @if (description()) {
+            <p>{{ description() }}</p>
+          }
+        </div>
+      </div>
+
+      <div class="modal-window__content">
+        <ng-content />
+      </div>
+    </div>
+  </div>
+}

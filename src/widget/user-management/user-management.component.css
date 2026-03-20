@@ -1,0 +1,109 @@
+.management-card {
+  padding: 1.35rem;
+}
+
+.management-card__header,
+.management-card__toolbar,
+.entity-list__item,
+.entity-list__actions,
+.management-card__submit {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.management-card__header,
+.management-card__toolbar {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.management-card__header {
+  margin-bottom: 1rem;
+}
+
+.management-card__header h2 {
+  margin: 0.45rem 0 0.35rem;
+  font-size: 1.55rem;
+}
+
+.management-card__header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.management-card__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.management-card__actions .button,
+.entity-list__actions .button {
+  gap: 0.55rem;
+}
+
+.management-card__body {
+  display: grid;
+  gap: 1rem;
+}
+
+.management-card__toolbar input {
+  flex: 1;
+}
+
+.entity-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.entity-list__item {
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem;
+  border-radius: 1.2rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(22, 33, 43, 0.08);
+}
+
+.entity-list__item h3 {
+  margin: 0 0 0.35rem;
+}
+
+.entity-list__item p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.entity-list__meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.entity-list__actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.management-card__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.management-card__submit {
+  justify-content: flex-end;
+  margin-top: 1.2rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .management-card__header,
+  .management-card__toolbar,
+  .entity-list__item,
+  .management-card__form-grid {
+    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+}

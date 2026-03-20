@@ -1,0 +1,188 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(18rem, 21rem) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.app-shell--collapsed {
+  grid-template-columns: 5.75rem minmax(0, 1fr);
+}
+
+.app-shell__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  position: sticky;
+  top: 1rem;
+  height: calc(100vh - 2rem);
+}
+
+.app-shell__sidebar--collapsed {
+  align-items: center;
+}
+
+.app-shell__sidebar-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.app-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+}
+
+.app-shell__brand-mark {
+  width: 3rem;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #0f766e, #d97745);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.app-shell__brand h1 {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.08;
+}
+
+.app-shell__toggle {
+  min-height: 2.85rem;
+  min-width: 2.85rem;
+  padding: 0;
+}
+
+.app-shell__nav {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.app-shell__nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1.2rem;
+  text-decoration: none;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(22, 33, 43, 0.08);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.app-shell__nav a:hover,
+.app-shell__nav a.is-active {
+  transform: translateY(-1px);
+  border-color: rgba(15, 118, 110, 0.34);
+  box-shadow: 0 18px 36px rgba(15, 118, 110, 0.14);
+}
+
+.app-shell__nav a.is-active {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.16), rgba(217, 119, 69, 0.12));
+}
+
+.app-shell__nav-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.95rem;
+  background: rgba(15, 118, 110, 0.1);
+  color: #0b4f4b;
+  flex: 0 0 auto;
+}
+
+.app-shell__nav strong {
+  font-size: 0.96rem;
+}
+
+.app-shell--collapsed .app-shell__nav a {
+  justify-content: center;
+  padding-inline: 0.75rem;
+}
+
+.app-shell__account {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  margin-top: auto;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(22, 33, 43, 0.08);
+}
+
+.app-shell--collapsed .app-shell__account {
+  padding: 0.7rem;
+  justify-content: center;
+}
+
+.app-shell__avatar {
+  width: 3.3rem;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #0f766e, #d97745);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 18px 40px rgba(15, 118, 110, 0.24);
+}
+
+.app-shell__account p {
+  margin: 0.3rem 0 0;
+  color: var(--text-muted);
+}
+
+.app-shell__logout {
+  width: 100%;
+  gap: 0.75rem;
+}
+
+.app-shell--collapsed .app-shell__logout {
+  padding-inline: 0.5rem;
+}
+
+.app-shell__content {
+  min-width: 0;
+}
+
+@media (max-width: 980px) {
+  .app-shell,
+  .app-shell--collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell__sidebar,
+  .app-shell__sidebar--collapsed {
+    position: static;
+    height: auto;
+    align-items: stretch;
+  }
+
+  .app-shell__sidebar-top {
+    justify-content: space-between;
+  }
+}

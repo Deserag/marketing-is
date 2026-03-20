@@ -1,0 +1,201 @@
+@if (loading()) {
+  <div class="dashboard-state">
+    <div class="panel dashboard-state__card">
+      <span class="eyebrow">Синхронизация</span>
+      <h2>Загружаем рабочие данные</h2>
+      <p>Подтягиваем профиль пользователя и основные рабочие разделы.</p>
+      <div class="dashboard-state__bar" aria-hidden="true">
+        <span></span>
+      </div>
+    </div>
+  </div>
+} @else if (errorMessage()) {
+  <div class="dashboard-state">
+    <div class="panel dashboard-state__card">
+      <span class="eyebrow">Ошибка загрузки</span>
+      <h2>Данные временно недоступны</h2>
+      <p>{{ errorMessage() }}</p>
+      <div class="dashboard-state__actions">
+        <button class="button button--primary" type="button" (click)="reload()">Повторить</button>
+        <button class="button button--ghost" type="button" (click)="logout()">Выйти</button>
+      </div>
+    </div>
+  </div>
+} @else if (dashboard(); as data) {
+  <main class="dashboard-page">
+    <header class="panel dashboard-hero">
+      <div class="dashboard-hero__copy">
+        <span class="eyebrow">Главная</span>
+        <h1>{{ fullName(data.profile) }}, рабочее пространство готово</h1>
+        <p>
+          На одном экране собраны основные разделы системы. Здесь удобно следить за общей картиной
+          и быстро переходить к нужным данным.
+        </p>
+
+        <div class="dashboard-hero__chips">
+          <span class="chip chip--muted">{{ data.profile.login }}</span>
+          <span class="chip chip--warm">{{ today | date: 'd MMMM y' }}</span>
+        </div>
+      </div>
+
+      <div class="dashboard-hero__profile">
+        <div class="dashboard-hero__avatar">{{ initials(data.profile) }}</div>
+        <div class="dashboard-hero__details">
+          <div>
+            <span>Электронная почта</span>
+            <strong>{{ data.profile.email }}</strong>
+          </div>
+          <div>
+            <span>Дата создания</span>
+            <strong>{{ data.profile.createdAt | date: 'd MMM y' }}</strong>
+          </div>
+        </div>
+
+        <div class="dashboard-hero__actions">
+          <button class="button button--ghost" type="button" (click)="reload()">Обновить</button>
+          <button class="button button--primary" type="button" (click)="logout()">Выйти</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="dashboard-metrics">
+      @for (metric of metrics(); track metric.label) {
+        <app-metric-card
+          [label]="metric.label"
+          [value]="metric.value"
+          [hint]="metric.hint"
+          [tone]="metric.tone"
+        />
+      }
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="panel section-card section-card--wide">
+        <div class="section-card__header">
+          <div>
+            <span class="eyebrow">Проекты</span>
+            <h2>Актуальные проекты</h2>
+          </div>
+          <strong>{{ data.projects.totalCount }}</strong>
+        </div>
+
+        @if (data.projects.rows.length) {
+          <div class="project-list">
+            @for (project of data.projects.rows; track trackById($index, project)) {
+              <article class="project-list__item">
+                <div>
+                  <h3>{{ project.name }}</h3>
+                  <p>{{ project.description || project.goal || 'Описание проекта пока не заполнено.' }}</p>
+                </div>
+                <div class="project-list__meta">
+                  <span>{{ project._count.participants }} участников</span>
+                  <span>{{ project._count.sprints }} спринтов</span>
+                  @if (project.resultFile?.name) {
+                    <span>{{ project.resultFile?.name }}</span>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-note">Пока нет доступных проектов.</p>
+        }
+      </article>
+
+      <article class="panel section-card">
+        <div class="section-card__header">
+          <div>
+            <span class="eyebrow">События</span>
+            <h2>Ближайшие активности</h2>
+          </div>
+          <strong>{{ data.events.totalCount }}</strong>
+        </div>
+
+        @if (data.events.rows.length) {
+          <div class="timeline-list">
+            @for (event of data.events.rows; track trackById($index, event)) {
+              <article class="timeline-list__item">
+                <div class="timeline-list__date">
+                  <span>{{ event.startDate | date: 'dd' }}</span>
+                  <small>{{ event.startDate | date: 'MMM' }}</small>
+                </div>
+                <div>
+                  <h3>{{ event.name }}</h3>
+                  <p>{{ eventTypeLabel(event.type) }} · {{ event.responsible.firstName }} {{ event.responsible.lastName }}</p>
+                  <div class="timeline-list__badges">
+                    <span class="chip chip--muted">{{ event.participantsCount }} участников</span>
+                    @if (access().canViewFinance) {
+                      <span class="chip chip--muted">{{ event.expensesCount }} расходов</span>
+                    }
+                  </div>
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-note">События еще не добавлены.</p>
+        }
+      </article>
+
+      <article class="panel section-card">
+        <div class="section-card__header">
+          <div>
+            <span class="eyebrow">Компании</span>
+            <h2>Контрагентская база</h2>
+          </div>
+          <strong>{{ data.companies.totalCount }}</strong>
+        </div>
+
+        @if (data.companies.rows.length) {
+          <div class="company-list">
+            @for (company of data.companies.rows; track trackById($index, company)) {
+              <article class="company-list__item">
+                <div>
+                  <h3>{{ company.name }}</h3>
+                  <p>ИНН {{ company.inn }} @if (company.kpp) { · КПП {{ company.kpp }} }</p>
+                </div>
+                <strong>{{ company._count.employees }} сотрудников</strong>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-note">Компании пока отсутствуют.</p>
+        }
+      </article>
+
+      @if (access().canViewFinance) {
+        <article class="panel section-card section-card--wide">
+          <div class="section-card__header">
+            <div>
+              <span class="eyebrow">Расходы</span>
+              <h2>Последние финансовые заявки</h2>
+            </div>
+            <strong>{{ data.expenses.totalCount }}</strong>
+          </div>
+
+          @if (data.expenses.rows.length) {
+            <div class="expense-list">
+              @for (expense of data.expenses.rows; track trackById($index, expense)) {
+                <article class="expense-list__item">
+                  <div class="expense-list__main">
+                    <h3>{{ expense.name }}</h3>
+                    <p>{{ expense.event.name }} · {{ expense.initiator.firstName }} {{ expense.initiator.lastName }}</p>
+                  </div>
+
+                  <div class="expense-list__meta">
+                    <strong>{{ expenseAmount(expense) }}</strong>
+                    <span class="status-pill" [class.status-pill--approved]="expense.approved">
+                      {{ approvalLabel(expense) }}
+                    </span>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="empty-note">Расходы пока не зарегистрированы.</p>
+          }
+        </article>
+      }
+    </section>
+  </main>
+}

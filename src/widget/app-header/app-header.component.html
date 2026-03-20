@@ -1,0 +1,26 @@
+<header class="panel app-header">
+  <div class="app-header__lead">
+    <button
+      class="button button--ghost app-header__toggle"
+      type="button"
+      (click)="toggleNavigation.emit()"
+    >
+      {{ navigationCollapsed() ? 'Показать меню' : 'Скрыть меню' }}
+    </button>
+
+    <div>
+      <span class="eyebrow">Навигация</span>
+      <h2>{{ title() }}</h2>
+      @if (subtitle()) {
+        <p>{{ subtitle() }}</p>
+      }
+    </div>
+  </div>
+
+  <div class="app-header__meta">
+    @if (userName()) {
+      <span class="chip chip--muted">{{ userName() }}</span>
+    }
+    <span class="chip chip--warm">{{ today | date: 'd MMMM y' }}</span>
+  </div>
+</header>

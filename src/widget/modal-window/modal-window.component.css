@@ -1,0 +1,41 @@
+:host {
+  display: contents;
+}
+
+.modal-window {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: transparent;
+}
+
+.modal-window__dialog {
+  width: min(42rem, 100%);
+  max-height: calc(100vh - 2.5rem);
+  overflow: auto;
+  padding: 1.25rem;
+}
+
+.modal-window__header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.modal-window__header h3 {
+  margin: 0.45rem 0 0.35rem;
+  font-size: 1.4rem;
+}
+
+.modal-window__header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.modal-window__content {
+  min-width: 0;
+}

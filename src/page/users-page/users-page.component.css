@@ -1,0 +1,5 @@
+.users-page {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 2vw, 2rem);
+}

@@ -1,0 +1,8 @@
+<main class="users-page">
+  <app-user-management
+    [canCreate]="auth.access().canCreateUsers"
+    [canEdit]="auth.access().canEditUsers"
+    [canDelete]="auth.access().canDeleteUsers"
+    [allowedRoles]="auth.access().assignableUserRoles"
+  />
+</main>

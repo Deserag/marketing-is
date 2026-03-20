@@ -1,0 +1,144 @@
+<section class="panel management-card">
+  <header class="management-card__header">
+    <div>
+      <span class="eyebrow">Пользователи</span>
+      <h2>Сотрудники системы</h2>
+      <p>{{ headerDescription() }}</p>
+    </div>
+
+    <div class="management-card__actions">
+      <button class="button button--ghost" type="button" (click)="toggleExpanded()">
+        <app-ui-icon [name]="expanded() ? 'chevron-up' : 'chevron-down'" />
+        <span>{{ expanded() ? 'Свернуть' : 'Развернуть' }}</span>
+      </button>
+
+      @if (canCreate()) {
+        <button class="button button--primary" type="button" (click)="openCreateDialog()">
+          <app-ui-icon name="plus" />
+          <span>Добавить пользователя</span>
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (successMessage()) {
+    <div class="form-message form-message--success">{{ successMessage() }}</div>
+  }
+
+  @if (errorMessage() && !dialogOpen()) {
+    <div class="form-message form-message--error">{{ errorMessage() }}</div>
+  }
+
+  @if (expanded()) {
+    <div class="management-card__body">
+      <div class="management-card__toolbar">
+        <input [formControl]="searchControl" type="text" placeholder="Поиск по имени, логину или почте" />
+        <button class="button button--ghost" type="button" (click)="applySearch()">Найти</button>
+        <button class="button button--ghost" type="button" (click)="reload()">Обновить</button>
+      </div>
+
+      @if (loading()) {
+        <p class="empty-note">Загружаем список пользователей...</p>
+      } @else if (pageData()?.rows?.length) {
+        <div class="entity-list">
+          @for (user of pageData()!.rows; track trackById($index, user)) {
+            <article class="entity-list__item">
+              <div>
+                <h3>{{ user.firstName }} {{ user.lastName }}</h3>
+                <p>{{ user.login }} · {{ user.email }}</p>
+                <div class="entity-list__meta">
+                  <span class="chip chip--muted">{{ user.createdAt | date: 'd MMM y' }}</span>
+                </div>
+              </div>
+
+              @if (canShowActions()) {
+                <div class="entity-list__actions">
+                  @if (canEdit()) {
+                    <button class="button button--ghost" type="button" (click)="editUser(user)">
+                      <app-ui-icon name="edit" />
+                      <span>Изменить</span>
+                    </button>
+                  }
+
+                  @if (canDelete()) {
+                    <button class="button button--danger" type="button" (click)="deleteUser(user)">
+                      <app-ui-icon name="trash" />
+                      <span>Удалить</span>
+                    </button>
+                  }
+                </div>
+              }
+            </article>
+          }
+        </div>
+      } @else {
+        <p class="empty-note">Пользователи по текущему фильтру не найдены.</p>
+      }
+    </div>
+  } @else {
+    <p class="empty-note">Раздел свернут. Откройте его, чтобы увидеть список пользователей.</p>
+  }
+
+  <app-modal-window
+    [opened]="dialogOpen()"
+    [title]="dialogTitle()"
+    [description]="isEditing() ? 'Обновите данные сотрудника и сохраните изменения.' : 'Заполните карточку нового пользователя.'"
+    (close)="closeDialog()"
+  >
+    @if (errorMessage() && dialogOpen()) {
+      <div class="form-message form-message--error">{{ errorMessage() }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="form-field">
+        <label for="user-login">Логин</label>
+        <input id="user-login" type="text" formControlName="login" [class.input-invalid]="fieldInvalid('login')" />
+      </div>
+
+      <div class="form-field">
+        <label for="user-email">Электронная почта</label>
+        <input id="user-email" type="email" formControlName="email" [class.input-invalid]="fieldInvalid('email')" />
+      </div>
+
+      <div class="form-field">
+        <label for="user-password">Пароль {{ isEditing() ? '(если нужен новый)' : '' }}</label>
+        <input id="user-password" type="password" formControlName="password" [class.input-invalid]="fieldInvalid('password')" />
+      </div>
+
+      <div class="management-card__form-grid">
+        <div class="form-field">
+          <label for="user-last-name">Фамилия</label>
+          <input id="user-last-name" type="text" formControlName="lastName" [class.input-invalid]="fieldInvalid('lastName')" />
+        </div>
+
+        <div class="form-field">
+          <label for="user-first-name">Имя</label>
+          <input id="user-first-name" type="text" formControlName="firstName" [class.input-invalid]="fieldInvalid('firstName')" />
+        </div>
+      </div>
+
+      <div class="management-card__form-grid">
+        <div class="form-field">
+          <label for="user-middle-name">Отчество</label>
+          <input id="user-middle-name" type="text" formControlName="middleName" />
+        </div>
+
+        <div class="form-field">
+          <label for="user-role">Роль</label>
+          <select id="user-role" formControlName="role">
+            @for (role of availableRoles(); track role) {
+              <option [value]="role">{{ roleLabel(role) }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="management-card__submit">
+        <button class="button button--ghost" type="button" (click)="closeDialog()">Отмена</button>
+        <button class="button button--primary" type="submit" [disabled]="submitting()">
+          {{ submitting() ? 'Сохраняем...' : isEditing() ? 'Сохранить' : 'Создать' }}
+        </button>
+      </div>
+    </form>
+  </app-modal-window>
+</section>

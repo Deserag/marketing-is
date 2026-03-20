@@ -1,0 +1,96 @@
+<div class="app-shell" [class.app-shell--collapsed]="navigationCollapsed()">
+  <aside class="panel app-shell__sidebar" [class.app-shell__sidebar--collapsed]="navigationCollapsed()">
+    <div class="app-shell__sidebar-top">
+      <a class="app-shell__brand" routerLink="/dashboard">
+        <div class="app-shell__brand-mark">СУ</div>
+
+        @if (!navigationCollapsed()) {
+          <h1>Система управления маркетинга</h1>
+        }
+      </a>
+
+      <button
+        class="button button--ghost app-shell__toggle"
+        type="button"
+        (click)="toggleNavigation()"
+        [attr.aria-label]="navigationCollapsed() ? 'Развернуть меню' : 'Свернуть меню'"
+        [title]="navigationCollapsed() ? 'Развернуть меню' : 'Свернуть меню'"
+      >
+        <app-ui-icon [name]="navigationCollapsed() ? 'chevron-right' : 'chevron-left'" />
+      </button>
+    </div>
+
+    <nav class="app-shell__nav" aria-label="Основная навигация">
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="is-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        aria-label="Обзор"
+        title="Обзор"
+      >
+        <span class="app-shell__nav-icon">
+          <app-ui-icon name="dashboard" />
+        </span>
+        @if (!navigationCollapsed()) {
+          <strong>Обзор</strong>
+        }
+      </a>
+
+      @if (auth.access().canViewUsers) {
+        <a
+          routerLink="/users"
+          routerLinkActive="is-active"
+          aria-label="Пользователи"
+          title="Пользователи"
+        >
+          <span class="app-shell__nav-icon">
+            <app-ui-icon name="users" />
+          </span>
+          @if (!navigationCollapsed()) {
+            <strong>Пользователи</strong>
+          }
+        </a>
+      }
+
+      @if (auth.access().canAccessAdminPanel) {
+        <a
+          routerLink="/admin-panel"
+          routerLinkActive="is-active"
+          aria-label="Админка"
+          title="Админка"
+        >
+          <span class="app-shell__nav-icon">
+            <app-ui-icon name="admin" />
+          </span>
+          @if (!navigationCollapsed()) {
+            <strong>Админка</strong>
+          }
+        </a>
+      }
+    </nav>
+
+    <div class="app-shell__account">
+      <div class="app-shell__avatar">{{ initials(auth.profile()) }}</div>
+
+      @if (!navigationCollapsed()) {
+        <div>
+          <strong>{{ fullName(auth.profile()) }}</strong>
+          <p>{{ auth.profile()?.login }}</p>
+        </div>
+      }
+    </div>
+
+    <button class="button button--primary app-shell__logout" type="button" (click)="logout()">
+      <app-ui-icon name="logout" />
+      @if (!navigationCollapsed()) {
+        <span>Выйти из системы</span>
+      }
+    </button>
+  </aside>
+
+  <section class="app-shell__main">
+    <div class="app-shell__content">
+      <router-outlet />
+    </div>
+  </section>
+</div>

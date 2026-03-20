@@ -1,1 +1,259 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  color-scheme: light;
+  --font-display: 'Segoe UI Variable Display', 'Aptos Display', 'Trebuchet MS', sans-serif;
+  --font-body: 'Segoe UI Variable Text', 'Aptos', 'Segoe UI', sans-serif;
+  --bg: #f6f1ea;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-strong: #ffffff;
+  --text: #16212b;
+  --text-muted: #617180;
+  --border: rgba(22, 33, 43, 0.1);
+  --shadow-soft: 0 18px 40px rgba(42, 55, 68, 0.1);
+  --shadow-strong: 0 30px 80px rgba(42, 55, 68, 0.16);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 28%),
+    radial-gradient(circle at top right, rgba(217, 119, 69, 0.18), transparent 32%),
+    linear-gradient(180deg, #fbf8f3 0%, var(--bg) 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  width: 28rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+body::before {
+  top: -10rem;
+  right: -6rem;
+  background: rgba(15, 118, 110, 0.22);
+}
+
+body::after {
+  bottom: -12rem;
+  left: -8rem;
+  background: rgba(217, 119, 69, 0.2);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+input {
+  width: 100%;
+  border: 1px solid rgba(22, 33, 43, 0.12);
+  border-radius: 1rem;
+  padding: 0.95rem 1rem;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: rgba(15, 118, 110, 0.7);
+  box-shadow: 0 0 0 0.3rem rgba(15, 118, 110, 0.12);
+}
+
+select {
+  width: 100%;
+  border: 1px solid rgba(22, 33, 43, 0.12);
+  border-radius: 1rem;
+  padding: 0.95rem 1rem;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+}
+
+select:focus {
+  outline: none;
+  border-color: rgba(15, 118, 110, 0.7);
+  box-shadow: 0 0 0 0.3rem rgba(15, 118, 110, 0.12);
+}
+
+.input-invalid {
+  border-color: rgba(194, 65, 79, 0.65);
+  box-shadow: 0 0 0 0.3rem rgba(194, 65, 79, 0.08);
+}
+
+.panel {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.9rem;
+  box-shadow: var(--shadow-strong);
+  backdrop-filter: blur(20px);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0b4f4b;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.42rem 0.82rem;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  color: #0b4f4b;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.chip--muted {
+  background: rgba(22, 33, 43, 0.08);
+  color: var(--text-muted);
+}
+
+.chip--warm {
+  background: rgba(217, 119, 69, 0.14);
+  color: #8f4d25;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  padding: 0.8rem 1.1rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  transform: none;
+}
+
+.button--primary {
+  color: white;
+  background: linear-gradient(135deg, #0f766e, #0b4f4b);
+  box-shadow: 0 16px 32px rgba(15, 118, 110, 0.24);
+}
+
+.button--ghost {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(22, 33, 43, 0.08);
+}
+
+.button--danger {
+  color: #fff;
+  background: linear-gradient(135deg, #d9485f, #b91c1c);
+  box-shadow: 0 16px 32px rgba(185, 28, 28, 0.24);
+}
+
+.form-field {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.form-field label {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.form-field small {
+  color: #b23a4c;
+}
+
+.form-message {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  font-size: 0.94rem;
+}
+
+.form-message--error {
+  background: rgba(194, 65, 79, 0.1);
+  color: #9f394d;
+  border: 1px solid rgba(194, 65, 79, 0.12);
+}
+
+.form-message--success {
+  background: rgba(15, 118, 110, 0.1);
+  color: #0b4f4b;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.42rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(217, 119, 69, 0.14);
+  color: #8f4d25;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-pill--approved {
+  background: rgba(15, 118, 110, 0.12);
+  color: #0b4f4b;
+}
+
+.empty-note {
+  margin: 0;
+  color: var(--text-muted);
+}
