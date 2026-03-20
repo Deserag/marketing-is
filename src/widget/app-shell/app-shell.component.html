@@ -1,7 +1,7 @@
 <div class="app-shell" [class.app-shell--collapsed]="navigationCollapsed()">
   <aside class="panel app-shell__sidebar" [class.app-shell__sidebar--collapsed]="navigationCollapsed()">
     <div class="app-shell__sidebar-top">
-      <a class="app-shell__brand" routerLink="/dashboard">
+      <a class="app-shell__brand" routerLink="/dashboard" aria-label="Система управления маркетинга">
         <div class="app-shell__brand-mark">СУ</div>
 
         @if (!navigationCollapsed()) {
@@ -21,18 +21,54 @@
     </div>
 
     <nav class="app-shell__nav" aria-label="Основная навигация">
-      <a
-        routerLink="/dashboard"
-        routerLinkActive="is-active"
-        [routerLinkActiveOptions]="{ exact: true }"
-        aria-label="Обзор"
-        title="Обзор"
-      >
+      <a routerLink="/projects" routerLinkActive="is-active" aria-label="Проекты" title="Проекты">
         <span class="app-shell__nav-icon">
-          <app-ui-icon name="dashboard" />
+          <app-ui-icon name="projects" />
         </span>
         @if (!navigationCollapsed()) {
-          <strong>Обзор</strong>
+          <strong>Проекты</strong>
+        }
+      </a>
+
+      <a
+        routerLink="/events"
+        routerLinkActive="is-active"
+        aria-label="Мероприятия"
+        title="Мероприятия"
+      >
+        <span class="app-shell__nav-icon">
+          <app-ui-icon name="events" />
+        </span>
+        @if (!navigationCollapsed()) {
+          <strong>Мероприятия</strong>
+        }
+      </a>
+
+      <a
+        routerLink="/companies"
+        routerLinkActive="is-active"
+        aria-label="Компании"
+        title="Компании"
+      >
+        <span class="app-shell__nav-icon">
+          <app-ui-icon name="companies" />
+        </span>
+        @if (!navigationCollapsed()) {
+          <strong>Компании</strong>
+        }
+      </a>
+
+      <a
+        routerLink="/calendar"
+        routerLinkActive="is-active"
+        aria-label="Календарь"
+        title="Календарь"
+      >
+        <span class="app-shell__nav-icon">
+          <app-ui-icon name="calendar" />
+        </span>
+        @if (!navigationCollapsed()) {
+          <strong>Календарь</strong>
         }
       </a>
 
@@ -68,17 +104,6 @@
         </a>
       }
     </nav>
-
-    <div class="app-shell__account">
-      <div class="app-shell__avatar">{{ initials(auth.profile()) }}</div>
-
-      @if (!navigationCollapsed()) {
-        <div>
-          <strong>{{ fullName(auth.profile()) }}</strong>
-          <p>{{ auth.profile()?.login }}</p>
-        </div>
-      }
-    </div>
 
     <button class="button button--primary app-shell__logout" type="button" (click)="logout()">
       <app-ui-icon name="logout" />

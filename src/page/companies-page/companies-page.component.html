@@ -1,0 +1,85 @@
+@if (loading()) {
+  <div class="page-state">
+    <div class="panel page-state__card">
+      <span class="eyebrow">Компании</span>
+      <h2>Загружаем компании</h2>
+      <p>Подготавливаем контрагентскую базу и список рабочих организаций.</p>
+    </div>
+  </div>
+} @else if (errorMessage()) {
+  <div class="page-state">
+    <div class="panel page-state__card">
+      <span class="eyebrow">Ошибка загрузки</span>
+      <h2>Компании временно недоступны</h2>
+      <p>{{ errorMessage() }}</p>
+      <button class="button button--primary" type="button" (click)="reload()">Повторить</button>
+    </div>
+  </div>
+} @else {
+  <main class="companies-page">
+    <header class="panel companies-hero">
+      <div>
+        <span class="eyebrow">Компании</span>
+        <h1>Контрагентская база</h1>
+        <p>Здесь собраны компании, партнеры и организации, которые участвуют в рабочих процессах.</p>
+      </div>
+
+      <div class="companies-hero__actions">
+        <input [formControl]="searchControl" type="text" placeholder="Поиск по названию, ИНН или КПП" />
+        <button class="button button--ghost" type="button" (click)="applySearch()">Найти</button>
+        <button class="button button--ghost" type="button" (click)="reload()">Обновить</button>
+      </div>
+    </header>
+
+    <section class="companies-metrics">
+      <app-metric-card
+        label="Всего компаний"
+        [value]="pageData()?.totalCount ?? 0"
+        hint="Компании в текущей рабочей выборке."
+        tone="teal"
+      />
+      <app-metric-card
+        label="С указанным КПП"
+        [value]="companiesWithKpp()"
+        hint="Карточки компаний с полным набором реквизитов."
+        tone="amber"
+      />
+      <app-metric-card
+        label="Сотрудников в выборке"
+        [value]="employeesCount()"
+        hint="Суммарное число сотрудников по загруженным компаниям."
+        tone="slate"
+      />
+    </section>
+
+    <section class="companies-grid">
+      @for (company of pageData()?.rows ?? []; track trackById($index, company)) {
+        <article class="panel company-card">
+          <div class="company-card__top">
+            <div>
+              <span class="eyebrow">Компания</span>
+              <h2>{{ company.name }}</h2>
+            </div>
+
+            <span class="chip chip--muted">{{ company.createdAt | date: 'd MMM y' }}</span>
+          </div>
+
+          <div class="company-card__facts">
+            <div>
+              <span>ИНН</span>
+              <strong>{{ company.inn }}</strong>
+            </div>
+            <div>
+              <span>КПП</span>
+              <strong>{{ company.kpp || 'Не указан' }}</strong>
+            </div>
+            <div>
+              <span>Сотрудники</span>
+              <strong>{{ company._count.employees }}</strong>
+            </div>
+          </div>
+        </article>
+      }
+    </section>
+  </main>
+}

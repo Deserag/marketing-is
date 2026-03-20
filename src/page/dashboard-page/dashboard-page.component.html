@@ -3,7 +3,7 @@
     <div class="panel dashboard-state__card">
       <span class="eyebrow">Синхронизация</span>
       <h2>Загружаем рабочие данные</h2>
-      <p>Подтягиваем профиль пользователя и основные рабочие разделы.</p>
+      <p>Подтягиваем ключевые разделы системы и актуальную рабочую информацию.</p>
       <div class="dashboard-state__bar" aria-hidden="true">
         <span></span>
       </div>
@@ -17,46 +17,34 @@
       <p>{{ errorMessage() }}</p>
       <div class="dashboard-state__actions">
         <button class="button button--primary" type="button" (click)="reload()">Повторить</button>
-        <button class="button button--ghost" type="button" (click)="logout()">Выйти</button>
       </div>
     </div>
   </div>
 } @else if (dashboard(); as data) {
   <main class="dashboard-page">
     <header class="panel dashboard-hero">
-      <div class="dashboard-hero__copy">
-        <span class="eyebrow">Главная</span>
-        <h1>{{ fullName(data.profile) }}, рабочее пространство готово</h1>
-        <p>
-          На одном экране собраны основные разделы системы. Здесь удобно следить за общей картиной
-          и быстро переходить к нужным данным.
-        </p>
+      <span class="eyebrow">Главная</span>
+      <h1>Система управления маркетинга</h1>
+      <p>
+        На главной странице собраны основные рабочие разделы. Отсюда можно быстро перейти к
+        проектам, мероприятиям, компаниям, календарю и административным экранам.
+      </p>
 
-        <div class="dashboard-hero__chips">
-          <span class="chip chip--muted">{{ data.profile.login }}</span>
-          <span class="chip chip--warm">{{ today | date: 'd MMMM y' }}</span>
-        </div>
-      </div>
-
-      <div class="dashboard-hero__profile">
-        <div class="dashboard-hero__avatar">{{ initials(data.profile) }}</div>
-        <div class="dashboard-hero__details">
-          <div>
-            <span>Электронная почта</span>
-            <strong>{{ data.profile.email }}</strong>
-          </div>
-          <div>
-            <span>Дата создания</span>
-            <strong>{{ data.profile.createdAt | date: 'd MMM y' }}</strong>
-          </div>
-        </div>
-
-        <div class="dashboard-hero__actions">
-          <button class="button button--ghost" type="button" (click)="reload()">Обновить</button>
-          <button class="button button--primary" type="button" (click)="logout()">Выйти</button>
-        </div>
+      <div class="dashboard-hero__chips">
+        <span class="chip chip--warm">{{ today | date: 'd MMMM y' }}</span>
+        <span class="chip chip--muted">Разделы открываются в один клик</span>
       </div>
     </header>
+
+    <section class="dashboard-shortcuts">
+      @for (shortcut of shortcuts(); track shortcut.route) {
+        <a class="panel shortcut-card" [routerLink]="shortcut.route">
+          <span class="eyebrow">{{ shortcut.label }}</span>
+          <h2>{{ shortcut.title }}</h2>
+          <p>{{ shortcut.description }}</p>
+        </a>
+      }
+    </section>
 
     <section class="dashboard-metrics">
       @for (metric of metrics(); track metric.label) {
@@ -76,13 +64,13 @@
             <span class="eyebrow">Проекты</span>
             <h2>Актуальные проекты</h2>
           </div>
-          <strong>{{ data.projects.totalCount }}</strong>
+          <a class="button button--ghost section-card__link" routerLink="/projects">Все проекты</a>
         </div>
 
         @if (data.projects.rows.length) {
           <div class="project-list">
             @for (project of data.projects.rows; track trackById($index, project)) {
-              <article class="project-list__item">
+              <a class="project-list__item project-list__item--link" [routerLink]="['/projects', project.id]">
                 <div>
                   <h3>{{ project.name }}</h3>
                   <p>{{ project.description || project.goal || 'Описание проекта пока не заполнено.' }}</p>
@@ -94,7 +82,7 @@
                     <span>{{ project.resultFile?.name }}</span>
                   }
                 </div>
-              </article>
+              </a>
             }
           </div>
         } @else {
@@ -108,18 +96,18 @@
             <span class="eyebrow">События</span>
             <h2>Ближайшие активности</h2>
           </div>
-          <strong>{{ data.events.totalCount }}</strong>
+          <a class="button button--ghost section-card__link" routerLink="/events">Все мероприятия</a>
         </div>
 
         @if (data.events.rows.length) {
           <div class="timeline-list">
             @for (event of data.events.rows; track trackById($index, event)) {
-              <article class="timeline-list__item">
+              <a class="timeline-list__item timeline-list__item--link" [routerLink]="['/events', event.id]">
                 <div class="timeline-list__date">
                   <span>{{ event.startDate | date: 'dd' }}</span>
                   <small>{{ event.startDate | date: 'MMM' }}</small>
                 </div>
-                <div>
+                <div class="timeline-list__content">
                   <h3>{{ event.name }}</h3>
                   <p>{{ eventTypeLabel(event.type) }} · {{ event.responsible.firstName }} {{ event.responsible.lastName }}</p>
                   <div class="timeline-list__badges">
@@ -129,11 +117,11 @@
                     }
                   </div>
                 </div>
-              </article>
+              </a>
             }
           </div>
         } @else {
-          <p class="empty-note">События еще не добавлены.</p>
+          <p class="empty-note">Мероприятия пока не добавлены.</p>
         }
       </article>
 
@@ -143,19 +131,19 @@
             <span class="eyebrow">Компании</span>
             <h2>Контрагентская база</h2>
           </div>
-          <strong>{{ data.companies.totalCount }}</strong>
+          <a class="button button--ghost section-card__link" routerLink="/companies">Все компании</a>
         </div>
 
         @if (data.companies.rows.length) {
           <div class="company-list">
             @for (company of data.companies.rows; track trackById($index, company)) {
-              <article class="company-list__item">
+              <a class="company-list__item company-list__item--link" routerLink="/companies">
                 <div>
                   <h3>{{ company.name }}</h3>
                   <p>ИНН {{ company.inn }} @if (company.kpp) { · КПП {{ company.kpp }} }</p>
                 </div>
                 <strong>{{ company._count.employees }} сотрудников</strong>
-              </article>
+              </a>
             }
           </div>
         } @else {

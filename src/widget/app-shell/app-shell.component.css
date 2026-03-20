@@ -23,16 +23,18 @@
   position: sticky;
   top: 1rem;
   height: calc(100vh - 2rem);
+  overflow-y: auto;
 }
 
 .app-shell__sidebar--collapsed {
-  align-items: center;
+  align-items: stretch;
 }
 
 .app-shell__sidebar-top {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
+  align-items: center;
 }
 
 .app-shell__brand {
@@ -40,7 +42,6 @@
   align-items: center;
   gap: 0.9rem;
   min-width: 0;
-  flex: 1;
   text-decoration: none;
   color: inherit;
 }
@@ -55,6 +56,7 @@
   color: #fff;
   font-weight: 800;
   letter-spacing: 0.08em;
+  flex: 0 0 auto;
 }
 
 .app-shell__brand h1 {
@@ -78,6 +80,7 @@
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  width: 100%;
   padding: 0.9rem 1rem;
   border-radius: 1.2rem;
   text-decoration: none;
@@ -118,47 +121,25 @@
   font-size: 0.96rem;
 }
 
+.app-shell--collapsed .app-shell__sidebar-top {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.app-shell--collapsed .app-shell__brand {
+  justify-content: center;
+  width: 100%;
+}
+
 .app-shell--collapsed .app-shell__nav a {
   justify-content: center;
   padding-inline: 0.75rem;
 }
 
-.app-shell__account {
-  display: flex;
-  gap: 0.9rem;
-  align-items: center;
-  margin-top: auto;
-  padding: 1rem;
-  border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(22, 33, 43, 0.08);
-}
-
-.app-shell--collapsed .app-shell__account {
-  padding: 0.7rem;
-  justify-content: center;
-}
-
-.app-shell__avatar {
-  width: 3.3rem;
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  border-radius: 1rem;
-  background: linear-gradient(135deg, #0f766e, #d97745);
-  color: #fff;
-  font-weight: 800;
-  box-shadow: 0 18px 40px rgba(15, 118, 110, 0.24);
-}
-
-.app-shell__account p {
-  margin: 0.3rem 0 0;
-  color: var(--text-muted);
-}
-
 .app-shell__logout {
   width: 100%;
   gap: 0.75rem;
+  margin-top: auto;
 }
 
 .app-shell--collapsed .app-shell__logout {
@@ -179,10 +160,15 @@
   .app-shell__sidebar--collapsed {
     position: static;
     height: auto;
-    align-items: stretch;
   }
 
-  .app-shell__sidebar-top {
-    justify-content: space-between;
+  .app-shell__sidebar-top,
+  .app-shell--collapsed .app-shell__sidebar-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-items: stretch;
+  }
+
+  .app-shell--collapsed .app-shell__brand {
+    justify-content: flex-start;
   }
 }

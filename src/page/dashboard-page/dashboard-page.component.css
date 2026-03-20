@@ -6,20 +6,19 @@
 
 .dashboard-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 24rem);
-  gap: 1.4rem;
+  gap: 1rem;
   padding: clamp(1.4rem, 3vw, 2.1rem);
 }
 
-.dashboard-hero__copy h1 {
-  margin: 0.55rem 0 0.9rem;
-  max-width: 13ch;
+.dashboard-hero h1 {
+  margin: 0;
+  max-width: 14ch;
   font-size: clamp(2.2rem, 4vw, 3.6rem);
   line-height: 0.95;
 }
 
-.dashboard-hero__copy p {
-  max-width: 40rem;
+.dashboard-hero p {
+  max-width: 48rem;
   margin: 0;
   color: var(--text-muted);
   font-size: 1.02rem;
@@ -29,50 +28,40 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin-top: 1.4rem;
 }
 
-.dashboard-hero__profile {
-  padding: 1.2rem;
-  border-radius: 1.5rem;
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(22, 33, 43, 0.08);
-}
-
-.dashboard-hero__avatar {
-  width: 4.25rem;
-  aspect-ratio: 1;
+.dashboard-shortcuts {
   display: grid;
-  place-items: center;
-  border-radius: 1.2rem;
-  background: linear-gradient(135deg, #0f766e, #d97745);
-  color: white;
-  font-size: 1.35rem;
-  font-weight: 800;
-  box-shadow: 0 18px 40px rgba(15, 118, 110, 0.24);
-}
-
-.dashboard-hero__details {
-  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
-  margin-top: 1.25rem;
 }
 
-.dashboard-hero__details span {
-  display: block;
+.shortcut-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.35rem;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.shortcut-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(15, 118, 110, 0.34);
+  box-shadow: 0 18px 36px rgba(15, 118, 110, 0.14);
+}
+
+.shortcut-card h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.shortcut-card p {
+  margin: 0;
   color: var(--text-muted);
-  font-size: 0.84rem;
-  margin-bottom: 0.3rem;
-}
-
-.dashboard-hero__details strong {
-  font-size: 1rem;
-}
-
-.dashboard-hero__actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1.4rem;
 }
 
 .dashboard-metrics {
@@ -108,8 +97,9 @@
   font-size: 1.35rem;
 }
 
-.section-card__header strong {
-  font-size: 1.9rem;
+.section-card__link {
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .project-list,
@@ -131,6 +121,25 @@
   border-radius: 1.2rem;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(22, 33, 43, 0.07);
+}
+
+.project-list__item--link,
+.timeline-list__item--link,
+.company-list__item--link {
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.project-list__item--link:hover,
+.timeline-list__item--link:hover,
+.company-list__item--link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(15, 118, 110, 0.34);
+  box-shadow: 0 18px 36px rgba(15, 118, 110, 0.14);
 }
 
 .project-list__item h3,
@@ -169,6 +178,10 @@
 
 .timeline-list__item {
   align-items: center;
+}
+
+.timeline-list__content {
+  min-width: 0;
 }
 
 .timeline-list__date {
@@ -255,25 +268,26 @@
 }
 
 @media (max-width: 1080px) {
+  .dashboard-shortcuts,
   .dashboard-metrics,
-  .dashboard-grid,
-  .dashboard-hero {
+  .dashboard-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 760px) {
+  .dashboard-shortcuts,
   .dashboard-metrics,
-  .dashboard-grid,
-  .dashboard-hero {
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-hero__actions,
+  .section-card__header,
   .dashboard-state__actions,
   .expense-list__item,
   .company-list__item,
-  .project-list__item {
+  .project-list__item,
+  .timeline-list__item {
     flex-direction: column;
   }
 }

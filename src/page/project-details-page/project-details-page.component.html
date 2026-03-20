@@ -1,0 +1,130 @@
+@if (loading()) {
+  <div class="details-state">
+    <div class="panel details-state__card">
+      <span class="eyebrow">Проект</span>
+      <h2>Загружаем карточку проекта</h2>
+      <p>Подготавливаем описание, команду и задачи по спринтам.</p>
+    </div>
+  </div>
+} @else if (errorMessage()) {
+  <div class="details-state">
+    <div class="panel details-state__card">
+      <span class="eyebrow">Ошибка загрузки</span>
+      <h2>Проект временно недоступен</h2>
+      <p>{{ errorMessage() }}</p>
+    </div>
+  </div>
+} @else if (project(); as project) {
+  <main class="project-details-page">
+    <header class="panel details-hero">
+      <div>
+        <span class="eyebrow">Проект</span>
+        <h1>{{ project.name }}</h1>
+        <p>{{ project.description || project.goal || 'Описание проекта пока не заполнено.' }}</p>
+
+        <div class="details-hero__chips">
+          <span class="chip chip--muted">{{ project.createdAt | date: 'd MMMM y' }}</span>
+          @if (project.resultFile?.name) {
+            <span class="chip chip--warm">{{ project.resultFile?.name }}</span>
+          }
+        </div>
+      </div>
+
+      <div class="details-hero__facts">
+        @if (project.goal) {
+          <div>
+            <span>Цель</span>
+            <strong>{{ project.goal }}</strong>
+          </div>
+        }
+        @if (project.result) {
+          <div>
+            <span>Результат</span>
+            <strong>{{ project.result }}</strong>
+          </div>
+        }
+      </div>
+    </header>
+
+    <section class="details-metrics">
+      <app-metric-card
+        label="Участники"
+        [value]="participantCount()"
+        hint="Состав команды проекта."
+        tone="teal"
+      />
+      <app-metric-card
+        label="Задачи"
+        [value]="sprintCount()"
+        hint="Спринты и рабочие этапы."
+        tone="amber"
+      />
+      <app-metric-card
+        label="Итоговый файл"
+        [value]="hasResultFile() ? 'Есть' : 'Нет'"
+        hint="Наличие итогового артефакта проекта."
+        tone="slate"
+      />
+    </section>
+
+    <section class="details-grid">
+      <article class="panel details-card">
+        <div class="details-card__header">
+          <div>
+            <span class="eyebrow">Команда</span>
+            <h2>Участники проекта</h2>
+          </div>
+          <strong>{{ participantCount() }}</strong>
+        </div>
+
+        @if (project.participants.length) {
+          <div class="participant-list">
+            @for (participant of project.participants; track trackById($index, participant)) {
+              <article class="participant-list__item">
+                <div>
+                  <h3>{{ fullName(participant.user) }}</h3>
+                  <p>{{ participant.user.login }} · {{ participant.user.email }}</p>
+                </div>
+                <span class="chip chip--muted">{{ participantRoleLabel(participant.role) }}</span>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-note">У проекта пока нет участников.</p>
+        }
+      </article>
+
+      <article class="panel details-card details-card--wide">
+        <div class="details-card__header">
+          <div>
+            <span class="eyebrow">Спринты</span>
+            <h2>Задачи и сроки</h2>
+          </div>
+          <strong>{{ sprintCount() }}</strong>
+        </div>
+
+        @if (project.sprints.length) {
+          <div class="sprint-list">
+            @for (sprint of project.sprints; track trackById($index, sprint)) {
+              <article class="sprint-list__item">
+                <div class="sprint-list__date">
+                  <span>{{ sprint.startDate | date: 'dd' }}</span>
+                  <small>{{ sprint.startDate | date: 'MMM' }}</small>
+                </div>
+                <div class="sprint-list__content">
+                  <h3>{{ sprint.taskText }}</h3>
+                  <p>{{ sprintDateLabel(sprint.startDate, sprint.endDate) }}</p>
+                </div>
+                @if (sprint.taskFile?.name) {
+                  <span class="chip chip--warm">{{ sprint.taskFile?.name }}</span>
+                }
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-note">У проекта пока нет задач со сроками.</p>
+        }
+      </article>
+    </section>
+  </main>
+}

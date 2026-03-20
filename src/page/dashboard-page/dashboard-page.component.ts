@@ -1,8 +1,8 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { forkJoin, of, take } from 'rxjs';
-import { UserProfile } from '../../entity/auth/auth.models';
 import { AuthService } from '../../entity/auth/auth.service';
 import { CompaniesService } from '../../entity/company/company.service';
 import { PaginatedResponse } from '../../entity/common/pagination.models';
@@ -23,9 +23,16 @@ type DashboardMetric = {
   tone: MetricTone;
 };
 
+type ShortcutItem = {
+  label: string;
+  title: string;
+  description: string;
+  route: string;
+};
+
 @Component({
   selector: 'app-dashboard-page',
-  imports: [DatePipe, MetricCardComponent],
+  imports: [DatePipe, RouterLink, MetricCardComponent],
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.css',
 })
@@ -82,27 +89,61 @@ export class DashboardPageComponent {
     return metrics;
   });
 
+  protected readonly shortcuts = computed<ShortcutItem[]>(() => {
+    const items: ShortcutItem[] = [
+      {
+        label: 'Проекты',
+        title: 'Открыть проекты',
+        description: 'Список инициатив, спринтов и проектных карточек.',
+        route: '/projects',
+      },
+      {
+        label: 'Мероприятия',
+        title: 'Открыть мероприятия',
+        description: 'Вебинары, встречи и маркетинговые активности.',
+        route: '/events',
+      },
+      {
+        label: 'Компании',
+        title: 'Открыть компании',
+        description: 'Контрагенты, партнеры и рабочая база компаний.',
+        route: '/companies',
+      },
+      {
+        label: 'Календарь',
+        title: 'Открыть календарь',
+        description: 'Сроки проектов, задач и ближайших мероприятий.',
+        route: '/calendar',
+      },
+    ];
+
+    if (this.access().canViewUsers) {
+      items.push({
+        label: 'Пользователи',
+        title: 'Открыть пользователей',
+        description: 'Сотрудники системы и рабочие роли.',
+        route: '/users',
+      });
+    }
+
+    if (this.access().canAccessAdminPanel) {
+      items.push({
+        label: 'Админка',
+        title: 'Открыть админку',
+        description: 'Управление системными данными и справочниками.',
+        route: '/admin-panel',
+      });
+    }
+
+    return items;
+  });
+
   constructor() {
     this.loadDashboard();
   }
 
   protected reload(): void {
     this.loadDashboard();
-  }
-
-  protected logout(): void {
-    this.authService.logout();
-  }
-
-  protected fullName(profile: UserProfile): string {
-    return [profile.firstName, profile.lastName].filter(Boolean).join(' ');
-  }
-
-  protected initials(profile: UserProfile): string {
-    const first = profile.firstName?.[0] ?? '';
-    const last = profile.lastName?.[0] ?? '';
-
-    return `${first}${last}`.toUpperCase();
   }
 
   protected eventTypeLabel(type: string): string {
@@ -145,13 +186,13 @@ export class DashboardPageComponent {
       .ensureCurrentProfile()
       .pipe(take(1))
       .subscribe({
-        next: (profile) => {
+        next: () => {
           const canViewFinance = this.authService.access().canViewFinance;
 
           forkJoin({
             projects: this.projectsService.list({ page: 1, size: 4 }),
-            events: this.eventsService.list({ page: 1, size: 4 }),
-            companies: this.companiesService.list({ page: 1, size: 5 }),
+            events: this.eventsService.list({ page: 1, size: 6 }),
+            companies: this.companiesService.list({ page: 1, size: 6 }),
             expenses: canViewFinance
               ? this.expensesService.list({ page: 1, size: 5 })
               : of(this.emptyPage<ExpenseListItem>()),
@@ -159,10 +200,7 @@ export class DashboardPageComponent {
             .pipe(take(1))
             .subscribe({
               next: (data) => {
-                this.dashboard.set({
-                  profile,
-                  ...data,
-                });
+                this.dashboard.set(data);
                 this.loading.set(false);
               },
               error: (error: unknown) => {
@@ -192,6 +230,6 @@ export class DashboardPageComponent {
       return 'Сервер недоступен. Запустите локальный сервер приложения на порту 3000 и обновите страницу.';
     }
 
-    return 'Не удалось загрузить данные обзора. Попробуйте обновить страницу.';
+    return 'Не удалось загрузить главную страницу. Попробуйте обновить данные.';
   }
 }

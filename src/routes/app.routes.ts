@@ -33,6 +33,48 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'projects',
+        loadComponent: () =>
+          import('../page/projects-page/projects-page.component').then(
+            (component) => component.ProjectsPageComponent,
+          ),
+      },
+      {
+        path: 'projects/:id',
+        loadComponent: () =>
+          import('../page/project-details-page/project-details-page.component').then(
+            (component) => component.ProjectDetailsPageComponent,
+          ),
+      },
+      {
+        path: 'events',
+        loadComponent: () =>
+          import('../page/events-page/events-page.component').then(
+            (component) => component.EventsPageComponent,
+          ),
+      },
+      {
+        path: 'events/:id',
+        loadComponent: () =>
+          import('../page/event-details-page/event-details-page.component').then(
+            (component) => component.EventDetailsPageComponent,
+          ),
+      },
+      {
+        path: 'companies',
+        loadComponent: () =>
+          import('../page/companies-page/companies-page.component').then(
+            (component) => component.CompaniesPageComponent,
+          ),
+      },
+      {
+        path: 'calendar',
+        loadComponent: () =>
+          import('../page/calendar-page/calendar-page.component').then(
+            (component) => component.CalendarPageComponent,
+          ),
+      },
+      {
         path: 'users',
         loadComponent: () =>
           import('../page/users-page/users-page.component').then(

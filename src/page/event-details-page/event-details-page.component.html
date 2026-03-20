@@ -1,0 +1,181 @@
+@if (loading()) {
+  <div class="details-state">
+    <div class="panel details-state__card">
+      <span class="eyebrow">Мероприятие</span>
+      <h2>Загружаем карточку мероприятия</h2>
+      <p>Подготавливаем описание, участников и связанные данные.</p>
+    </div>
+  </div>
+} @else if (errorMessage()) {
+  <div class="details-state">
+    <div class="panel details-state__card">
+      <span class="eyebrow">Ошибка загрузки</span>
+      <h2>Мероприятие временно недоступно</h2>
+      <p>{{ errorMessage() }}</p>
+    </div>
+  </div>
+} @else if (event(); as event) {
+  <main class="event-details-page">
+    <header class="panel details-hero">
+      <div>
+        <span class="eyebrow">{{ eventTypeLabel(event.type) }}</span>
+        <h1>{{ event.name }}</h1>
+        <p>{{ event.description || 'Описание мероприятия пока не заполнено.' }}</p>
+
+        <div class="details-hero__chips">
+          <span class="chip chip--warm">{{ dateLabel(event.startDate, event.endDate) }}</span>
+          <span class="chip chip--muted">{{ responsibleName(event) }}</span>
+        </div>
+      </div>
+
+      <div class="details-hero__facts">
+        <div>
+          <span>Ответственный</span>
+          <strong>{{ responsibleName(event) }}</strong>
+        </div>
+        <div>
+          <span>Создано</span>
+          <strong>{{ event.createdAt | date: 'd MMMM y' }}</strong>
+        </div>
+      </div>
+    </header>
+
+    <section class="details-metrics">
+      <app-metric-card
+        label="Участники"
+        [value]="participantCount()"
+        hint="Сотрудники компаний, закрепленные за мероприятием."
+        tone="teal"
+      />
+      <app-metric-card
+        label="Напоминания"
+        [value]="reminderCount()"
+        hint="Настроенные уведомления о событии."
+        tone="amber"
+      />
+      <app-metric-card
+        label="Метрики"
+        [value]="metricCount()"
+        hint="Фиксация результатов по мероприятию."
+        tone="slate"
+      />
+      @if (access().canViewFinance) {
+        <app-metric-card
+          label="Расходы"
+          [value]="expenseCount()"
+          hint="Заявки и финансовые списания по мероприятию."
+          tone="rose"
+        />
+      }
+    </section>
+
+    <section class="details-grid">
+      <article class="panel details-card">
+        <div class="details-card__header">
+          <div>
+            <span class="eyebrow">Участники</span>
+            <h2>Список участников</h2>
+          </div>
+          <strong>{{ participantCount() }}</strong>
+        </div>
+
+        @if (event.participants.length) {
+          <div class="participant-list">
+            @for (participant of event.participants; track trackById($index, participant)) {
+              <article class="participant-list__item">
+                <div>
+                  <h3>{{ participantName(participant) }}</h3>
+                  <p>{{ participant.companyEmployee.company.name }}</p>
+                </div>
+                @if (participant.companyEmployee.email) {
+                  <span class="chip chip--muted">{{ participant.companyEmployee.email }}</span>
+                }
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-note">У мероприятия пока нет участников.</p>
+        }
+      </article>
+
+      <article class="panel details-card">
+        <div class="details-card__header">
+          <div>
+            <span class="eyebrow">Напоминания</span>
+            <h2>План уведомлений</h2>
+          </div>
+          <strong>{{ reminderCount() }}</strong>
+        </div>
+
+        @if (event.reminders.length) {
+          <div class="simple-list">
+            @for (reminder of event.reminders; track trackById($index, reminder)) {
+              <article class="simple-list__item">
+                <h3>{{ reminder.remindBeforeHours }} ч до начала</h3>
+                <p>{{ reminder.createdAt | date: 'd MMM y, HH:mm' }}</p>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-note">Напоминания еще не настроены.</p>
+        }
+      </article>
+
+      <article class="panel details-card details-card--wide">
+        <div class="details-card__header">
+          <div>
+            <span class="eyebrow">Метрики</span>
+            <h2>Результаты мероприятия</h2>
+          </div>
+          <strong>{{ metricCount() }}</strong>
+        </div>
+
+        @if (event.metrics.length) {
+          <div class="simple-list">
+            @for (metric of event.metrics; track trackById($index, metric)) {
+              <article class="simple-list__item">
+                <h3>{{ metricSummary(metric) }}</h3>
+                <p>{{ metric.createdAt | date: 'd MMM y, HH:mm' }}</p>
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-note">Метрики пока не добавлены.</p>
+        }
+      </article>
+
+      @if (access().canViewFinance) {
+        <article class="panel details-card details-card--wide">
+          <div class="details-card__header">
+            <div>
+              <span class="eyebrow">Расходы</span>
+              <h2>Финансовые заявки</h2>
+            </div>
+            <strong>{{ expenseCount() }}</strong>
+          </div>
+
+          @if (event.expenses.length) {
+            <div class="expense-list">
+              @for (expense of event.expenses; track trackById($index, expense)) {
+                <article class="expense-list__item">
+                  <div>
+                    <h3>{{ expense.name }}</h3>
+                    <p>{{ expense.type }} · {{ expense.initiator.firstName }} {{ expense.initiator.lastName }}</p>
+                  </div>
+                  <div class="expense-list__meta">
+                    <strong>{{ expense.price }} {{ expense.currency }}</strong>
+                    <span class="status-pill" [class.status-pill--approved]="expense.approved">
+                      {{ expense.approved ? 'Подтвержден' : 'Ожидает подтверждения' }}
+                    </span>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="empty-note">Расходы пока не добавлены.</p>
+          }
+        </article>
+      }
+    </section>
+  </main>
+}

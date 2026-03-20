@@ -1,0 +1,90 @@
+@if (loading()) {
+  <div class="page-state">
+    <div class="panel page-state__card">
+      <span class="eyebrow">Проекты</span>
+      <h2>Загружаем проекты</h2>
+      <p>Подготавливаем список рабочих инициатив и проектных задач.</p>
+    </div>
+  </div>
+} @else if (errorMessage()) {
+  <div class="page-state">
+    <div class="panel page-state__card">
+      <span class="eyebrow">Ошибка загрузки</span>
+      <h2>Проекты временно недоступны</h2>
+      <p>{{ errorMessage() }}</p>
+      <button class="button button--primary" type="button" (click)="reload()">Повторить</button>
+    </div>
+  </div>
+} @else {
+  <main class="projects-page">
+    <header class="panel projects-hero">
+      <div>
+        <span class="eyebrow">Проекты</span>
+        <h1>Рабочие проекты</h1>
+        <p>Отсюда можно быстро открыть карточку проекта, просмотреть состав команды и задачи по спринтам.</p>
+      </div>
+
+      <div class="projects-hero__actions">
+        <input [formControl]="searchControl" type="text" placeholder="Поиск по названию, цели или результату" />
+        <button class="button button--ghost" type="button" (click)="applySearch()">Найти</button>
+        <button class="button button--ghost" type="button" (click)="reload()">Обновить</button>
+      </div>
+    </header>
+
+    <section class="projects-metrics">
+      <app-metric-card
+        label="Всего проектов"
+        [value]="pageData()?.totalCount ?? 0"
+        hint="Все доступные проекты с учетом текущего фильтра."
+        tone="teal"
+      />
+      <app-metric-card
+        label="Со спринтами"
+        [value]="withTasksCount()"
+        hint="Проекты, в которых уже заведены задачи и сроки."
+        tone="amber"
+      />
+      <app-metric-card
+        label="С итоговым файлом"
+        [value]="withResultFileCount()"
+        hint="Проекты, в которых уже прикреплен результат."
+        tone="slate"
+      />
+    </section>
+
+    <section class="projects-grid">
+      @for (project of pageData()?.rows ?? []; track trackById($index, project)) {
+        <article class="panel project-card">
+          <div class="project-card__top">
+            <div>
+              <span class="eyebrow">Проект</span>
+              <h2>{{ project.name }}</h2>
+              <p>{{ description(project) }}</p>
+            </div>
+
+            <span class="chip chip--muted">{{ project.createdAt | date: 'd MMM y' }}</span>
+          </div>
+
+          <div class="project-card__chips">
+            <span class="chip chip--muted">{{ project._count.participants }} участников</span>
+            <span class="chip chip--muted">{{ project._count.sprints }} задач</span>
+            @if (project.resultFile?.name) {
+              <span class="chip chip--warm">{{ project.resultFile?.name }}</span>
+            }
+          </div>
+
+          @if (project.goal) {
+            <div class="project-card__fact">
+              <span>Цель</span>
+              <strong>{{ project.goal }}</strong>
+            </div>
+          }
+
+          <div class="project-card__actions">
+            <a class="button button--ghost" [routerLink]="['/projects', project.id]">Открыть проект</a>
+          </div>
+        </article>
+      }
+    </section>
+  </main>
+}

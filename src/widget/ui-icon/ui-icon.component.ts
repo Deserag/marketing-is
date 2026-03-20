@@ -2,6 +2,10 @@ import { Component, input } from '@angular/core';
 
 export type UiIconName =
   | 'dashboard'
+  | 'projects'
+  | 'events'
+  | 'companies'
+  | 'calendar'
   | 'users'
   | 'admin'
   | 'plus'
