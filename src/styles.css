@@ -98,6 +98,27 @@ input:focus {
   box-shadow: 0 0 0 0.3rem rgba(15, 118, 110, 0.12);
 }
 
+textarea {
+  width: 100%;
+  min-height: 7rem;
+  resize: vertical;
+  border: 1px solid rgba(22, 33, 43, 0.12);
+  border-radius: 1rem;
+  padding: 0.95rem 1rem;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: rgba(15, 118, 110, 0.7);
+  box-shadow: 0 0 0 0.3rem rgba(15, 118, 110, 0.12);
+}
+
 select {
   width: 100%;
   border: 1px solid rgba(22, 33, 43, 0.12);
@@ -158,6 +179,21 @@ select:focus {
 .chip--warm {
   background: rgba(217, 119, 69, 0.14);
   color: #8f4d25;
+}
+
+.chip--created {
+  background: rgba(15, 118, 110, 0.12);
+  color: #0b4f4b;
+}
+
+.chip--updated {
+  background: rgba(217, 119, 69, 0.16);
+  color: #8f4d25;
+}
+
+.chip--today {
+  background: rgba(29, 78, 216, 0.12);
+  color: #1d4ed8;
 }
 
 .button {
@@ -256,4 +292,74 @@ select:focus {
 .empty-note {
   margin: 0;
   color: var(--text-muted);
+}
+
+.page-state {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.page-state__card {
+  width: min(32rem, 100%);
+  padding: 2rem;
+}
+
+.page-state__card h2 {
+  margin: 0.6rem 0 0.8rem;
+}
+
+.timestamp-list {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.8rem;
+}
+
+.access-preview {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1.2rem;
+  background: rgba(15, 118, 110, 0.06);
+  border: 1px solid rgba(15, 118, 110, 0.12);
+}
+
+.access-preview__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.access-preview__header h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.access-preview__header p {
+  margin: 0.3rem 0 0;
+  color: var(--text-muted);
+}
+
+.access-preview__values {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.access-preview__values strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.access-preview__values p {
+  margin: 0;
+  font-weight: 700;
 }

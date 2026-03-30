@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './guards/admin.guard';
 import { authGuard } from './guards/auth.guard';
+import { financeGuard } from './guards/finance.guard';
 import { guestGuard } from './guards/guest.guard';
 
 export const routes: Routes = [
@@ -73,9 +74,31 @@ export const routes: Routes = [
           import('../page/calendar-page/calendar-page.component').then(
             (component) => component.CalendarPageComponent,
           ),
+        data: {
+          mode: 'all',
+        },
+      },
+      {
+        path: 'my-calendar',
+        loadComponent: () =>
+          import('../page/calendar-page/calendar-page.component').then(
+            (component) => component.CalendarPageComponent,
+          ),
+        data: {
+          mode: 'mine',
+        },
+      },
+      {
+        path: 'analytics',
+        canActivate: [financeGuard],
+        loadComponent: () =>
+          import('../page/analytics-page/analytics-page.component').then(
+            (component) => component.AnalyticsPageComponent,
+          ),
       },
       {
         path: 'users',
+        canActivate: [adminGuard],
         loadComponent: () =>
           import('../page/users-page/users-page.component').then(
             (component) => component.UsersPageComponent,

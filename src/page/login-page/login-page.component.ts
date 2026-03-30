@@ -28,12 +28,6 @@ export class LoginPageComponent {
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
-  protected readonly highlights = [
-    'Вход проверяет учетную запись и сразу открывает рабочее пространство.',
-    'После авторизации доступны проекты, мероприятия, компании и расходы.',
-    'Основные сценарии собраны так, чтобы нужные данные и переходы были под рукой.',
-  ];
-
   protected submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

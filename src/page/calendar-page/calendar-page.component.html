@@ -2,11 +2,11 @@
   <div class="page-state">
     <div class="panel page-state__card">
       <span class="eyebrow">Календарь</span>
-      <h2>Загружаем рабочий календарь</h2>
-      <p>Собираем проекты, задачи и мероприятия в единое расписание.</p>
+      <h2>Загружаем календарь событий</h2>
+      <p>Подготавливаем период и список мероприятий.</p>
     </div>
   </div>
-} @else if (errorMessage()) {
+} @else if (errorMessage() && !events().length) {
   <div class="page-state">
     <div class="panel page-state__card">
       <span class="eyebrow">Ошибка загрузки</span>
@@ -17,88 +17,67 @@
   </div>
 } @else {
   <main class="calendar-page">
-    <header class="panel calendar-hero">
+    <header class="panel calendar-header">
       <div>
         <span class="eyebrow">Календарь</span>
-        <h1>Календарь задач и активностей</h1>
-        <p>
-          На одном экране собраны периоды проектов, проектные задачи и маркетинговые
-          мероприятия. Любую запись можно открыть в нужном разделе системы.
-        </p>
-
-        <div class="calendar-hero__legend">
-          <span class="chip chip--muted">
-            <span class="calendar-dot calendar-dot--project"></span>
-            Проекты
-          </span>
-          <span class="chip chip--muted">
-            <span class="calendar-dot calendar-dot--task"></span>
-            Задачи
-          </span>
-          <span class="chip chip--muted">
-            <span class="calendar-dot calendar-dot--event"></span>
-            Мероприятия
-          </span>
-        </div>
+        <h1>{{ pageTitle() }}</h1>
+        <p>Текущий период вынесен отдельно, а карточка дня открывается только по клику на дату.</p>
       </div>
 
-      <div class="calendar-hero__controls">
-        <button
-          class="button button--ghost calendar-hero__icon-button"
-          type="button"
-          (click)="previousMonth()"
-          aria-label="Предыдущий месяц"
-        >
-          <app-ui-icon name="chevron-left" />
-        </button>
+      <div class="calendar-header__actions">
+        @if (viewMode() === 'mine') {
+          <span class="chip chip--today">Сегодня: {{ todayEventsCount() }} событий</span>
+        }
 
-        <div class="calendar-hero__month">
-          <span>Текущий период</span>
-          <strong>{{ monthLabel() }}</strong>
-        </div>
-
-        <button
-          class="button button--ghost calendar-hero__icon-button"
-          type="button"
-          (click)="nextMonth()"
-          aria-label="Следующий месяц"
-        >
-          <app-ui-icon name="chevron-right" />
-        </button>
-
-        <button class="button button--ghost" type="button" (click)="goToToday()">Сегодня</button>
+        @if (auth.access().canCreateEvents) {
+          <button class="button button--primary" type="button" (click)="openCreateDialog(selectedDate() || undefined)">
+            Создать событие
+          </button>
+        }
       </div>
     </header>
 
-    <section class="calendar-metrics">
-      <app-metric-card
-        label="Проекты в календаре"
-        [value]="projectCount()"
-        hint="Проекты собраны в календарь по задачам и доступным срокам."
-        tone="teal"
-      />
-      <app-metric-card
-        label="Задачи в месяце"
-        [value]="taskCountInMonth()"
-        hint="Количество проектных задач, стартующих в выбранном месяце."
-        tone="amber"
-      />
-      <app-metric-card
-        label="Мероприятия в месяце"
-        [value]="eventCountInMonth()"
-        hint="Маркетинговые активности, запланированные на этот период."
-        tone="slate"
-      />
-      <app-metric-card
-        label="Загруженные дни"
-        [value]="busyDaysCount()"
-        hint="Дни месяца, в которых уже есть проекты, задачи или мероприятия."
-        tone="rose"
-      />
+    @if (successMessage()) {
+      <div class="form-message form-message--success">{{ successMessage() }}</div>
+    }
+
+    @if (errorMessage()) {
+      <div class="form-message form-message--error">{{ errorMessage() }}</div>
+    }
+
+    <section class="panel calendar-period">
+      <button
+        class="button button--ghost calendar-period__icon-button"
+        type="button"
+        (click)="previousMonth()"
+        aria-label="Предыдущий месяц"
+      >
+        <app-ui-icon name="chevron-left" />
+      </button>
+
+      <div class="calendar-period__label">
+        <span>Текущий период</span>
+        <strong>{{ monthLabel() }}</strong>
+      </div>
+
+      <button
+        class="button button--ghost calendar-period__icon-button"
+        type="button"
+        (click)="nextMonth()"
+        aria-label="Следующий месяц"
+      >
+        <app-ui-icon name="chevron-right" />
+      </button>
+
+      <button class="button button--ghost" type="button" (click)="goToToday()">Сегодня</button>
     </section>
 
-    <section class="calendar-layout">
-      <article class="panel calendar-board">
+    <section class="calendar-layout" [class.calendar-layout--with-sidebar]="selectedDate()">
+      <article class="panel calendar-board" [class.calendar-board--loading]="refreshing()">
+        @if (refreshing()) {
+          <div class="calendar-board__overlay" aria-hidden="true"></div>
+        }
+
         <div class="calendar-weekdays">
           @for (weekDay of weekDays; track weekDay) {
             <span>{{ weekDay }}</span>
@@ -122,64 +101,161 @@
                 }
               </div>
 
-              <div class="calendar-day__stats">
-                @if (day.counts.project) {
-                  <span class="calendar-day__stat calendar-day__stat--project">
-                    Проекты: {{ day.counts.project }}
-                  </span>
-                }
-                @if (day.counts.task) {
-                  <span class="calendar-day__stat calendar-day__stat--task">
-                    Задачи: {{ day.counts.task }}
-                  </span>
-                }
-                @if (day.counts.event) {
-                  <span class="calendar-day__stat calendar-day__stat--event">
-                    Мероприятия: {{ day.counts.event }}
+              <div class="calendar-day__events">
+                @for (event of day.events; track event.id) {
+                  <span class="calendar-day__event" [attr.data-type]="event.type">
+                    {{ eventTimeLabel(event) }} · {{ event.name }}
                   </span>
                 }
               </div>
 
-              <span class="calendar-day__summary" [class.calendar-day__summary--empty]="!day.totalCount">
-                {{ day.totalCount ? 'Записей: ' + day.totalCount : 'Свободный день' }}
-              </span>
+              @if (day.hiddenCount) {
+                <span class="calendar-day__more">Еще {{ day.hiddenCount }}</span>
+              } @else if (!day.events.length) {
+                <span class="calendar-day__more calendar-day__more--empty">Свободно</span>
+              }
             </button>
           }
         </div>
       </article>
 
-      <aside class="panel calendar-agenda">
-        <div class="calendar-agenda__header">
-          <div>
-            <span class="eyebrow">На дату</span>
-            <h2>{{ selectedDate() | date: 'd MMMM y' }}</h2>
+      @if (selectedDate()) {
+        <aside class="panel calendar-sidebar">
+          <div class="calendar-sidebar__header">
+            <div>
+              <span class="eyebrow">Выбранный день</span>
+              <h2>{{ selectedDateLabel() }}</h2>
+            </div>
+
+            <div class="calendar-sidebar__header-actions">
+              <span class="chip chip--warm">{{ selectedDayEvents().length }} событий</span>
+              <button
+                class="button button--ghost calendar-sidebar__close"
+                type="button"
+                aria-label="Закрыть панель дня"
+                (click)="closeSelectedDate()"
+              >
+                <app-ui-icon name="close" />
+              </button>
+            </div>
           </div>
 
-          <span class="chip chip--warm">{{ selectedDayEntries().length }} записей</span>
-        </div>
+          @if (auth.access().canCreateEvents) {
+            <button class="button button--primary calendar-sidebar__create" type="button" (click)="openCreateDialog(selectedDate() || undefined)">
+              Создать событие на эту дату
+            </button>
+          }
 
-        @if (selectedDayEntries().length) {
-          <div class="agenda-list">
-            @for (entry of selectedDayEntries(); track entry.id) {
-              <a class="agenda-item" [routerLink]="entry.route">
-                <div class="agenda-item__type" [attr.data-kind]="entry.kind">
-                  {{ entryTypeLabel(entry.kind) }}
-                </div>
-                <h3>{{ entry.title }}</h3>
-                <p>{{ entry.subtitle }}</p>
-                <div class="agenda-item__meta">
-                  <span>{{ entryDateLabel(entry) }}</span>
-                  <span>{{ entry.meta }}</span>
-                </div>
-              </a>
-            }
-          </div>
-        } @else {
-          <p class="empty-note">
-            На выбранную дату записей пока нет. Можно переключить месяц или выбрать другой день.
-          </p>
-        }
-      </aside>
+          @if (selectedDayEvents().length) {
+            <div class="calendar-sidebar__list">
+              @for (event of selectedDayEvents(); track trackById($index, event)) {
+                <article class="day-event">
+                  <div class="day-event__head">
+                    <span class="chip chip--muted">{{ eventTypeLabel(event.type) }}</span>
+                    <strong>{{ eventTimeLabel(event) }}</strong>
+                  </div>
+                  <h3>{{ event.name }}</h3>
+                  <p>{{ event.description || 'Описание не заполнено.' }}</p>
+                  <div class="day-event__meta">
+                    <span>Ответственный: {{ event.responsible.lastName }} {{ event.responsible.firstName }}</span>
+                    <span>Участники: {{ event.participantsCount }}</span>
+                  </div>
+                  <div class="day-event__actions">
+                    @if (canEditEvent(event)) {
+                      <button class="button button--ghost" type="button" (click)="openEditDialog(event)">
+                        Изменить
+                      </button>
+                    }
+                    <button class="button button--ghost" type="button" (click)="openEventDetails(event.id)">Открыть</button>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="empty-note">На выбранную дату событий пока нет. Можно сразу создать новое.</p>
+          }
+        </aside>
+      }
     </section>
   </main>
+
+  <app-modal-window
+    [opened]="dialogOpen()"
+    [title]="dialogTitle()"
+    [description]="isEditing() ? 'Измените данные события и сохраните изменения.' : 'Заполните данные нового события.'"
+    (close)="closeDialog()"
+  >
+    @if (dialogErrorMessage()) {
+      <div class="form-message form-message--error">{{ dialogErrorMessage() }}</div>
+    }
+
+    @if (dialogLoading()) {
+      <p class="empty-note">Загружаем данные события...</p>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submitDialog()">
+        <div class="form-field">
+          <label for="calendar-event-name">Название события</label>
+          <input id="calendar-event-name" type="text" formControlName="name" />
+        </div>
+
+        <div class="calendar-form__grid">
+          <div class="form-field">
+            <label for="calendar-event-type">Тип</label>
+            <select id="calendar-event-type" formControlName="type">
+              <option value="WEBINAR">Вебинар</option>
+              <option value="MEETING">Встреча</option>
+              <option value="CAMPAIGN">Кампания</option>
+            </select>
+          </div>
+
+          @if (responsibles().length) {
+            <div class="form-field">
+              <label for="calendar-event-responsible">Ответственный</label>
+              <select id="calendar-event-responsible" formControlName="responsibleId">
+                @for (user of responsibles(); track user.id) {
+                  <option [value]="user.id">{{ user.lastName }} {{ user.firstName }}</option>
+                }
+              </select>
+            </div>
+          }
+        </div>
+
+        <div class="calendar-form__grid">
+          <div class="form-field">
+            <label for="calendar-event-start">Начало</label>
+            <input id="calendar-event-start" type="datetime-local" formControlName="startDate" />
+          </div>
+
+          <div class="form-field">
+            <label for="calendar-event-end">Окончание</label>
+            <input id="calendar-event-end" type="datetime-local" formControlName="endDate" />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="calendar-event-description">Описание</label>
+          <textarea id="calendar-event-description" formControlName="description"></textarea>
+        </div>
+
+        @if (responsibles().length) {
+          <div class="form-field">
+            <label for="calendar-event-participants">Участники</label>
+            <select id="calendar-event-participants" class="form-select-multiple" formControlName="participants" multiple size="8">
+              @for (user of responsibles(); track user.id) {
+                <option [value]="user.id">{{ user.lastName }} {{ user.firstName }} · {{ user.role }}</option>
+              }
+            </select>
+            <small>Можно выбрать сразу нескольких пользователей системы.</small>
+          </div>
+        }
+
+        <div class="calendar-form__actions">
+          <button class="button button--ghost" type="button" (click)="closeDialog()">Отмена</button>
+          <button class="button button--primary" type="submit" [disabled]="dialogSubmitting()">
+            {{ dialogSubmitting() ? 'Сохраняем...' : isEditing() ? 'Сохранить' : 'Создать' }}
+          </button>
+        </div>
+      </form>
+    }
+  </app-modal-window>
 }

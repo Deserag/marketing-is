@@ -1,0 +1,183 @@
+<section class="panel event-management">
+  <header class="event-management__header">
+    <div>
+      <span class="eyebrow">Мероприятия</span>
+      <h2>События и активности</h2>
+      <p>Список во всю ширину, быстрый переход в карточку и единая форма с поддержкой нескольких участников.</p>
+    </div>
+
+    <div class="event-management__actions">
+      @if (canCreate()) {
+        <button class="button button--primary" type="button" (click)="openCreateDialog()">
+          <app-ui-icon name="plus" />
+          <span>Создать событие</span>
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (successMessage()) {
+    <div class="form-message form-message--success">{{ successMessage() }}</div>
+  }
+
+  @if (errorMessage() && !dialogOpen()) {
+    <div class="form-message form-message--error">{{ errorMessage() }}</div>
+  }
+
+  <div class="event-management__toolbar">
+    <input [formControl]="searchControl" type="text" placeholder="Поиск по названию, описанию или ответственному" />
+    <select [formControl]="typeControl">
+      <option value="ALL">Все типы</option>
+      <option value="WEBINAR">Вебинары</option>
+      <option value="MEETING">Встречи</option>
+      <option value="CAMPAIGN">Кампании</option>
+    </select>
+    <button class="button button--ghost" type="button" (click)="applyFilters()">Применить</button>
+    <button class="button button--ghost" type="button" (click)="reload()">Обновить</button>
+  </div>
+
+  @if (loading()) {
+    <p class="empty-note">Загружаем мероприятия...</p>
+  } @else if (pageData()?.rows?.length) {
+    <div class="event-list">
+      @for (event of pageData()!.rows; track trackById($index, event)) {
+        <article class="event-row" [class.event-row--clickable]="canEditEvent(event)" (click)="editEvent(event)">
+          <div class="event-row__content">
+            <div class="event-row__head">
+              <div>
+                <span class="eyebrow">{{ eventTypeLabel(event.type) }}</span>
+                <h3>{{ event.name }}</h3>
+                <p>{{ event.description || 'Описание мероприятия пока не заполнено.' }}</p>
+              </div>
+
+              <span class="chip chip--warm">{{ dateLabel(event.startDate, event.endDate) }}</span>
+            </div>
+
+            <div class="event-row__facts">
+              <span>Ответственный: {{ responsibleName(event) }}</span>
+              <span>Участники: {{ event.participantsCount }}</span>
+              <span>Напоминания: {{ event.remindersCount }}</span>
+              <span>Метрики: {{ event.metricsCount }}</span>
+            </div>
+
+            <div class="timestamp-list">
+              <span class="chip chip--created">Создано: {{ event.createdAt | date: 'd MMM y, HH:mm' }}</span>
+              <span class="chip chip--updated">Обновлено: {{ event.updatedAt | date: 'd MMM y, HH:mm' }}</span>
+            </div>
+          </div>
+
+          <div class="event-row__actions" (click)="$event.stopPropagation()">
+            @if (canEditEvent(event)) {
+              <button class="button button--ghost" type="button" (click)="editEvent(event)">
+                <app-ui-icon name="edit" />
+                <span>Изменить</span>
+              </button>
+            }
+
+            <button class="button button--ghost" type="button" (click)="openEventDetails(event.id)">Открыть</button>
+
+            @if (canDeleteEvent(event)) {
+              <button class="button button--danger" type="button" (click)="deleteEvent(event)">
+                <app-ui-icon name="trash" />
+                <span>Удалить</span>
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+
+    <app-pagination-controls
+      [currentPage]="pageData()!.currentPage"
+      [totalPages]="pageData()!.totalPages"
+      [totalCount]="pageData()!.totalCount"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="pageSizeOptions"
+      itemLabel="мероприятий"
+      (pageChange)="changePage($event)"
+      (pageSizeChange)="changePageSize($event)"
+    />
+  } @else {
+    <p class="empty-note">Мероприятия по текущим фильтрам не найдены.</p>
+  }
+
+  <app-modal-window
+    [opened]="dialogOpen()"
+    [title]="dialogTitle()"
+    [description]="isEditing() ? 'Измените базовую информацию о мероприятии.' : 'Заполните основные данные нового события.'"
+    (close)="closeDialog()"
+  >
+    @if (errorMessage() && dialogOpen()) {
+      <div class="form-message form-message--error">{{ errorMessage() }}</div>
+    }
+
+    @if (dialogLoading()) {
+      <p class="empty-note">Загружаем данные мероприятия...</p>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="form-field">
+          <label for="event-name">Название мероприятия</label>
+          <input id="event-name" type="text" formControlName="name" />
+        </div>
+
+        <div class="event-management__form-grid">
+          <div class="form-field">
+            <label for="event-type">Тип</label>
+            <select id="event-type" formControlName="type">
+              <option value="WEBINAR">Вебинар</option>
+              <option value="MEETING">Встреча</option>
+              <option value="CAMPAIGN">Кампания</option>
+            </select>
+          </div>
+
+          @if (hasResponsibleOptions()) {
+            <div class="form-field">
+              <label for="event-responsible">Ответственный</label>
+              <select id="event-responsible" formControlName="responsibleId">
+                @for (user of responsibles(); track user.id) {
+                  <option [value]="user.id">{{ user.lastName }} {{ user.firstName }}</option>
+                }
+              </select>
+            </div>
+          }
+        </div>
+
+        <div class="event-management__form-grid">
+          <div class="form-field">
+            <label for="event-start-date">Начало</label>
+            <input id="event-start-date" type="datetime-local" formControlName="startDate" />
+          </div>
+
+          <div class="form-field">
+            <label for="event-end-date">Окончание</label>
+            <input id="event-end-date" type="datetime-local" formControlName="endDate" />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="event-description">Описание</label>
+          <textarea id="event-description" formControlName="description"></textarea>
+        </div>
+
+        @if (responsibles().length) {
+          <div class="form-field">
+            <label for="event-participants">Участники</label>
+            <select id="event-participants" class="form-select-multiple" formControlName="participants" multiple size="8">
+              @for (user of responsibles(); track user.id) {
+                <option [value]="user.id">{{ user.lastName }} {{ user.firstName }} · {{ user.role }}</option>
+              }
+            </select>
+            <small>Можно выбрать сразу нескольких пользователей системы.</small>
+          </div>
+        }
+
+        <div class="event-management__submit">
+          <button class="button button--ghost" type="button" (click)="closeDialog()">Отмена</button>
+          <button class="button button--primary" type="submit" [disabled]="submitting()">
+            {{ submitting() ? 'Сохраняем...' : isEditing() ? 'Сохранить' : 'Создать' }}
+          </button>
+        </div>
+      </form>
+    }
+  </app-modal-window>
+</section>

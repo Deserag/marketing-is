@@ -9,6 +9,15 @@
             <p>{{ description() }}</p>
           }
         </div>
+
+        <button
+          class="button button--ghost modal-window__close"
+          type="button"
+          aria-label="Закрыть"
+          (click)="close.emit()"
+        >
+          <app-ui-icon name="close" />
+        </button>
       </div>
 
       <div class="modal-window__content">

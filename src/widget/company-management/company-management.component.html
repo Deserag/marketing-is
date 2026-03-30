@@ -3,7 +3,7 @@
     <div>
       <span class="eyebrow">Компании</span>
       <h2>Корпоративная база</h2>
-      <p>Карточки компаний, реквизиты и связанные данные.</p>
+      <p>{{ headerDescription() }}</p>
     </div>
 
     <div class="management-card__actions">
@@ -11,10 +11,13 @@
         <app-ui-icon [name]="expanded() ? 'chevron-up' : 'chevron-down'" />
         <span>{{ expanded() ? 'Свернуть' : 'Развернуть' }}</span>
       </button>
-      <button class="button button--primary" type="button" (click)="openCreateDialog()">
-        <app-ui-icon name="plus" />
-        <span>Добавить компанию</span>
-      </button>
+
+      @if (canCreate()) {
+        <button class="button button--primary" type="button" (click)="openCreateDialog()">
+          <app-ui-icon name="plus" />
+          <span>Добавить компанию</span>
+        </button>
+      }
     </div>
   </header>
 
@@ -29,7 +32,7 @@
   @if (expanded()) {
     <div class="management-card__body">
       <div class="management-card__toolbar">
-        <input [formControl]="searchControl" type="text" placeholder="Поиск по названию, ИНН или КПП" />
+        <input [formControl]="searchControl" type="text" placeholder="Поиск по названию, ИНН, КПП и сотрудникам" />
         <button class="button button--ghost" type="button" (click)="applySearch()">Найти</button>
         <button class="button button--ghost" type="button" (click)="reload()">Обновить</button>
       </div>
@@ -40,28 +43,56 @@
         <div class="entity-list">
           @for (company of pageData()!.rows; track trackById($index, company)) {
             <article class="entity-list__item">
-              <div>
-                <h3>{{ company.name }}</h3>
-                <p>ИНН {{ company.inn }} @if (company.kpp) { · КПП {{ company.kpp }} }</p>
-                <div class="entity-list__meta">
+              <div class="entity-list__content">
+                <div class="entity-list__head">
+                  <div>
+                    <h3>{{ company.name }}</h3>
+                    <p>ИНН {{ company.inn }} @if (company.kpp) { · КПП {{ company.kpp }} }</p>
+                  </div>
+
                   <span class="chip chip--muted">{{ company._count.employees }} сотрудников</span>
-                  <span class="chip chip--muted">{{ company.createdAt | date: 'd MMM y' }}</span>
+                </div>
+
+                <div class="timestamp-list">
+                  <span class="chip chip--created">Создана: {{ company.createdAt | date: 'd MMM y, HH:mm' }}</span>
+                  <span class="chip chip--updated">Обновлена: {{ company.updatedAt | date: 'd MMM y, HH:mm' }}</span>
                 </div>
               </div>
 
               <div class="entity-list__actions">
-                <button class="button button--ghost" type="button" (click)="editCompany(company)">
-                  <app-ui-icon name="edit" />
-                  <span>Изменить</span>
+                <button class="button button--ghost" type="button" (click)="openEmployeesDialog(company)">
+                  <app-ui-icon name="users" />
+                  <span>Сотрудники</span>
                 </button>
-                <button class="button button--danger" type="button" (click)="deleteCompany(company)">
-                  <app-ui-icon name="trash" />
-                  <span>Удалить</span>
-                </button>
+
+                @if (canEdit()) {
+                  <button class="button button--ghost" type="button" (click)="editCompany(company)">
+                    <app-ui-icon name="edit" />
+                    <span>Изменить</span>
+                  </button>
+                }
+
+                @if (canDelete()) {
+                  <button class="button button--danger" type="button" (click)="deleteCompany(company)">
+                    <app-ui-icon name="trash" />
+                    <span>Удалить</span>
+                  </button>
+                }
               </div>
             </article>
           }
         </div>
+
+        <app-pagination-controls
+          [currentPage]="pageData()!.currentPage"
+          [totalPages]="pageData()!.totalPages"
+          [totalCount]="pageData()!.totalCount"
+          [pageSize]="pageSize()"
+          [pageSizeOptions]="pageSizeOptions"
+          itemLabel="компаний"
+          (pageChange)="changePage($event)"
+          (pageSizeChange)="changePageSize($event)"
+        />
       } @else {
         <p class="empty-note">Компании по текущему фильтру не найдены.</p>
       }
@@ -84,17 +115,26 @@
       <div class="form-field">
         <label for="company-name">Название компании</label>
         <input id="company-name" type="text" formControlName="name" [class.input-invalid]="fieldInvalid('name')" />
+        @if (fieldError('name'); as error) {
+          <small>{{ error }}</small>
+        }
       </div>
 
       <div class="management-card__form-grid">
         <div class="form-field">
           <label for="company-inn">ИНН</label>
           <input id="company-inn" type="text" formControlName="inn" [class.input-invalid]="fieldInvalid('inn')" />
+          @if (fieldError('inn'); as error) {
+            <small>{{ error }}</small>
+          }
         </div>
 
         <div class="form-field">
           <label for="company-kpp">КПП</label>
           <input id="company-kpp" type="text" formControlName="kpp" [class.input-invalid]="fieldInvalid('kpp')" />
+          @if (fieldError('kpp'); as error) {
+            <small>{{ error }}</small>
+          }
         </div>
       </div>
 
@@ -105,5 +145,162 @@
         </button>
       </div>
     </form>
+  </app-modal-window>
+
+  <app-modal-window
+    [opened]="employeesDialogOpen()"
+    [title]="activeCompany()?.name || 'Сотрудники компании'"
+    [description]="activeCompany() ? 'Управление сотрудниками компании и их контактными данными.' : ''"
+    (close)="closeEmployeesDialog()"
+  >
+    @if (employeesErrorMessage()) {
+      <div class="form-message form-message--error">{{ employeesErrorMessage() }}</div>
+    }
+
+    @if (employeeSuccessMessage()) {
+      <div class="form-message form-message--success">{{ employeeSuccessMessage() }}</div>
+    }
+
+    <div class="employee-modal__toolbar">
+      @if (activeCompany()) {
+        <span class="chip chip--muted">ИНН {{ activeCompany()!.inn }}</span>
+      }
+
+      @if (canEdit()) {
+        <button class="button button--primary" type="button" (click)="startCreateEmployee()">
+          <app-ui-icon name="plus" />
+          <span>Добавить сотрудника</span>
+        </button>
+      }
+    </div>
+
+    @if (employeesLoading()) {
+      <p class="empty-note">Загружаем сотрудников компании...</p>
+    } @else if (employees().length) {
+      <div class="employee-list">
+        @for (employee of employees(); track trackById($index, employee)) {
+          <article class="employee-list__item">
+            <div class="employee-list__content">
+              <h3>{{ employeeFullName(employee) }}</h3>
+              <p>
+                @if (employee.email) {
+                  <span>{{ employee.email }}</span>
+                } @else {
+                  <span>Email не указан</span>
+                }
+                @if (employee.phone) {
+                  <span> · {{ employee.phone }}</span>
+                }
+              </p>
+              <div class="employee-list__meta">
+                @if (employee.telegram) {
+                  <span class="chip chip--muted">Telegram: {{ employee.telegram }}</span>
+                }
+              </div>
+            </div>
+
+            <div class="employee-list__actions">
+              @if (canEdit()) {
+                <button class="button button--ghost" type="button" (click)="editEmployee(employee)">
+                  <app-ui-icon name="edit" />
+                  <span>Изменить</span>
+                </button>
+              }
+
+              @if (canDelete()) {
+                <button class="button button--danger" type="button" (click)="deleteEmployee(employee)">
+                  <app-ui-icon name="trash" />
+                  <span>Удалить</span>
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      <p class="empty-note">У компании пока нет сотрудников.</p>
+    }
+
+    @if (employeeFormOpen()) {
+      <div class="employee-form">
+        @if (employeeErrorMessage()) {
+          <div class="form-message form-message--error">{{ employeeErrorMessage() }}</div>
+        }
+
+        <form [formGroup]="employeeForm" (ngSubmit)="submitEmployee()">
+          <div class="management-card__form-grid">
+            <div class="form-field">
+              <label for="employee-last-name">Фамилия</label>
+              <input
+                id="employee-last-name"
+                type="text"
+                formControlName="lastName"
+                [class.input-invalid]="employeeFieldInvalid('lastName')"
+              />
+              @if (employeeFieldError('lastName'); as error) {
+                <small>{{ error }}</small>
+              }
+            </div>
+
+            <div class="form-field">
+              <label for="employee-first-name">Имя</label>
+              <input
+                id="employee-first-name"
+                type="text"
+                formControlName="firstName"
+                [class.input-invalid]="employeeFieldInvalid('firstName')"
+              />
+              @if (employeeFieldError('firstName'); as error) {
+                <small>{{ error }}</small>
+              }
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="employee-middle-name">Отчество</label>
+            <input id="employee-middle-name" type="text" formControlName="middleName" />
+          </div>
+
+          <div class="management-card__form-grid">
+            <div class="form-field">
+              <label for="employee-email">Email</label>
+              <input
+                id="employee-email"
+                type="email"
+                formControlName="email"
+                [class.input-invalid]="employeeFieldInvalid('email')"
+              />
+              @if (employeeFieldError('email'); as error) {
+                <small>{{ error }}</small>
+              }
+            </div>
+
+            <div class="form-field">
+              <label for="employee-phone">Телефон</label>
+              <input id="employee-phone" type="text" formControlName="phone" />
+            </div>
+          </div>
+
+          <div class="management-card__form-grid">
+            <div class="form-field">
+              <label for="employee-vk">VK</label>
+              <input id="employee-vk" type="text" formControlName="vk" />
+            </div>
+
+            <div class="form-field">
+              <label for="employee-telegram">Telegram</label>
+              <input id="employee-telegram" type="text" formControlName="telegram" />
+            </div>
+          </div>
+
+          <div class="management-card__submit">
+            <button class="button button--ghost" type="button" (click)="cancelEmployeeEdit()">Отмена</button>
+            <button class="button button--primary" type="submit" [disabled]="employeeSubmitting()">
+              {{ employeeSubmitting() ? 'Сохраняем...' : isEditingEmployee() ? 'Сохранить' : 'Добавить' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    }
   </app-modal-window>
 </section>

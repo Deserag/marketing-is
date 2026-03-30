@@ -6,6 +6,7 @@ export type UiIconName =
   | 'events'
   | 'companies'
   | 'calendar'
+  | 'analytics'
   | 'users'
   | 'admin'
   | 'plus'
@@ -15,7 +16,8 @@ export type UiIconName =
   | 'chevron-left'
   | 'chevron-right'
   | 'chevron-up'
-  | 'chevron-down';
+  | 'chevron-down'
+  | 'close';
 
 @Component({
   selector: 'app-ui-icon',

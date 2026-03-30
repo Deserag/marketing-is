@@ -23,11 +23,23 @@
   max-width: 38rem;
 }
 
-.details-hero__chips {
+.details-hero__chips,
+.participant-list__actions,
+.details-form__actions,
+.result-file__actions,
+.sprint-list__actions,
+.expense-list__meta {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.details-hero__chips {
   margin-top: 1.25rem;
+}
+
+.details-hero__chips a {
+  text-decoration: none;
 }
 
 .details-hero__facts {
@@ -51,7 +63,7 @@
 
 .details-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -59,6 +71,10 @@
   display: grid;
   grid-template-columns: 1fr 1.35fr;
   gap: 1rem;
+}
+
+.details-grid--expenses {
+  grid-template-columns: 1.4fr minmax(18rem, 0.75fr);
 }
 
 .details-card {
@@ -87,32 +103,69 @@
 }
 
 .participant-list,
-.sprint-list {
+.sprint-list,
+.expense-list {
   display: grid;
   gap: 0.8rem;
 }
 
 .participant-list__item,
-.sprint-list__item {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
+.sprint-list__item,
+.details-form,
+.result-file,
+.expense-list__item {
   padding: 1rem 1.05rem;
   border-radius: 1.2rem;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(22, 33, 43, 0.07);
 }
 
+.participant-list__item,
+.sprint-list__item,
+.expense-list__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
 .participant-list__item h3,
-.sprint-list__content h3 {
+.sprint-list__content h3,
+.expense-list__item h3 {
   margin: 0 0 0.35rem;
 }
 
 .participant-list__item p,
-.sprint-list__content p {
+.sprint-list__content p,
+.expense-list__item p {
   margin: 0;
   color: var(--text-muted);
+}
+
+.details-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  background: rgba(15, 118, 110, 0.05);
+  border-color: rgba(15, 118, 110, 0.12);
+}
+
+.details-form--sprint,
+.details-form--expense {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.details-form__wide,
+.details-form__actions--wide {
+  grid-column: 1 / -1;
+}
+
+.details-form__actions {
+  justify-content: flex-end;
+}
+
+.form-select-multiple {
+  min-height: 12rem;
 }
 
 .sprint-list__item {
@@ -142,6 +195,45 @@
   letter-spacing: 0.08em;
 }
 
+.sprint-list__content,
+.result-file {
+  min-width: 0;
+}
+
+.sprint-list__content a {
+  text-decoration: none;
+}
+
+.sprint-list__file-button,
+.result-file__upload {
+  position: relative;
+  overflow: hidden;
+}
+
+.sprint-list__file-button input,
+.result-file__upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.expense-list__head {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.expense-list__meta {
+  margin-top: 0.75rem;
+}
+
+.result-file-card {
+  align-self: start;
+}
+
 .details-state {
   min-height: 100vh;
   display: grid;
@@ -158,15 +250,21 @@
   margin: 0.6rem 0 0.8rem;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1080px) {
   .details-hero,
-  .details-metrics,
-  .details-grid {
+  .details-grid,
+  .details-grid--expenses,
+  .details-form--sprint,
+  .details-form--expense,
+  .details-metrics {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 960px) {
   .participant-list__item,
-  .sprint-list__item {
+  .sprint-list__item,
+  .expense-list__item {
     flex-direction: column;
   }
 }

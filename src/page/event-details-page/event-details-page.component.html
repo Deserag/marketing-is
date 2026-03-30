@@ -44,7 +44,7 @@
       <app-metric-card
         label="Участники"
         [value]="participantCount()"
-        hint="Сотрудники компаний, закрепленные за мероприятием."
+        hint="Пользователи системы, закрепленные за мероприятием."
         tone="teal"
       />
       <app-metric-card
@@ -79,17 +79,52 @@
           <strong>{{ participantCount() }}</strong>
         </div>
 
+        @if (participantsSuccess()) {
+          <div class="form-message form-message--success">{{ participantsSuccess() }}</div>
+        }
+
+        @if (participantsError()) {
+          <div class="form-message form-message--error">{{ participantsError() }}</div>
+        }
+
+        @if (canExtendEvent() && availableParticipantOptions().length) {
+          <form class="details-form" [formGroup]="participantForm" (ngSubmit)="addParticipants()">
+            <div class="form-field">
+              <label for="event-participants">Добавить участников</label>
+              <select id="event-participants" class="form-select-multiple" formControlName="userIds" multiple size="7">
+                @for (user of availableParticipantOptions(); track user.id) {
+                  <option [value]="user.id">{{ userOptionLabel(user) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="details-form__actions">
+              <button class="button button--primary" type="submit" [disabled]="participantsBusy()">
+                {{ participantsBusy() ? 'Добавляем...' : 'Добавить участников' }}
+              </button>
+            </div>
+          </form>
+        }
+
         @if (event.participants.length) {
           <div class="participant-list">
             @for (participant of event.participants; track trackById($index, participant)) {
               <article class="participant-list__item">
                 <div>
                   <h3>{{ participantName(participant) }}</h3>
-                  <p>{{ participant.companyEmployee.company.name }}</p>
+                  <p>{{ participant.user.login }} · {{ participant.user.role }}</p>
                 </div>
-                @if (participant.companyEmployee.email) {
-                  <span class="chip chip--muted">{{ participant.companyEmployee.email }}</span>
-                }
+                <div class="participant-list__actions">
+                  @if (participant.user.email) {
+                    <span class="chip chip--muted">{{ participant.user.email }}</span>
+                  }
+                  @if (canManageEvent()) {
+                    <button class="button button--ghost" type="button" (click)="removeParticipant(participant)">
+                      <app-ui-icon name="trash" />
+                      <span>Удалить</span>
+                    </button>
+                  }
+                </div>
               </article>
             }
           </div>
@@ -107,12 +142,43 @@
           <strong>{{ reminderCount() }}</strong>
         </div>
 
+        @if (remindersSuccess()) {
+          <div class="form-message form-message--success">{{ remindersSuccess() }}</div>
+        }
+
+        @if (remindersError()) {
+          <div class="form-message form-message--error">{{ remindersError() }}</div>
+        }
+
+        @if (canExtendEvent()) {
+          <form class="details-form" [formGroup]="reminderForm" (ngSubmit)="createReminder()">
+            <div class="form-field">
+              <label for="event-remind-before">Напомнить за сколько часов</label>
+              <input id="event-remind-before" type="number" min="1" formControlName="remindBeforeHours" />
+            </div>
+
+            <div class="details-form__actions">
+              <button class="button button--primary" type="submit" [disabled]="remindersBusy()">
+                {{ remindersBusy() ? 'Сохраняем...' : 'Добавить напоминание' }}
+              </button>
+            </div>
+          </form>
+        }
+
         @if (event.reminders.length) {
           <div class="simple-list">
             @for (reminder of event.reminders; track trackById($index, reminder)) {
               <article class="simple-list__item">
-                <h3>{{ reminder.remindBeforeHours }} ч до начала</h3>
-                <p>{{ reminder.createdAt | date: 'd MMM y, HH:mm' }}</p>
+                <div>
+                  <h3>{{ reminder.remindBeforeHours }} ч до начала</h3>
+                  <p>{{ reminder.createdAt | date: 'd MMM y, HH:mm' }}</p>
+                </div>
+                @if (canManageEvent()) {
+                  <button class="button button--ghost" type="button" (click)="removeReminder(reminder.id)">
+                    <app-ui-icon name="trash" />
+                    <span>Удалить</span>
+                  </button>
+                }
               </article>
             }
           </div>
@@ -129,6 +195,37 @@
           </div>
           <strong>{{ metricCount() }}</strong>
         </div>
+
+        @if (metricsSuccess()) {
+          <div class="form-message form-message--success">{{ metricsSuccess() }}</div>
+        }
+
+        @if (metricsError()) {
+          <div class="form-message form-message--error">{{ metricsError() }}</div>
+        }
+
+        @if (canExtendEvent()) {
+          <form class="details-form details-form--triple" [formGroup]="metricForm" (ngSubmit)="createMetric()">
+            <div class="form-field">
+              <label for="metric-leads">Лиды</label>
+              <input id="metric-leads" type="number" min="0" formControlName="leads" />
+            </div>
+            <div class="form-field">
+              <label for="metric-sales">Продажи</label>
+              <input id="metric-sales" type="number" min="0" formControlName="sales" />
+            </div>
+            <div class="form-field">
+              <label for="metric-revenue">Выручка</label>
+              <input id="metric-revenue" type="number" min="0" step="0.01" formControlName="revenue" />
+            </div>
+
+            <div class="details-form__actions details-form__actions--wide">
+              <button class="button button--primary" type="submit" [disabled]="metricsBusy()">
+                {{ metricsBusy() ? 'Сохраняем...' : 'Добавить метрику' }}
+              </button>
+            </div>
+          </form>
+        }
 
         @if (event.metrics.length) {
           <div class="simple-list">
@@ -154,6 +251,50 @@
             <strong>{{ expenseCount() }}</strong>
           </div>
 
+          @if (expensesSuccess()) {
+            <div class="form-message form-message--success">{{ expensesSuccess() }}</div>
+          }
+
+          @if (expensesError()) {
+            <div class="form-message form-message--error">{{ expensesError() }}</div>
+          }
+
+          @if (canExtendEvent()) {
+            <form class="details-form details-form--expense" [formGroup]="expenseForm" (ngSubmit)="createExpense()">
+              <div class="form-field">
+                <label for="expense-name">Название расхода</label>
+                <input id="expense-name" type="text" formControlName="name" />
+              </div>
+              <div class="form-field">
+                <label for="expense-type">Тип</label>
+                <select id="expense-type" formControlName="type">
+                  <option value="ADVERTISING">Реклама</option>
+                  <option value="RENT">Аренда</option>
+                  <option value="CONTENT">Контент</option>
+                  <option value="OTHER">Другое</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="expense-price">Сумма</label>
+                <input id="expense-price" type="number" min="0" step="0.01" formControlName="price" />
+              </div>
+              <div class="form-field">
+                <label for="expense-currency">Валюта</label>
+                <select id="expense-currency" formControlName="currency">
+                  <option value="RUB">RUB</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+
+              <div class="details-form__actions details-form__actions--wide">
+                <button class="button button--primary" type="submit" [disabled]="expensesBusy()">
+                  {{ expensesBusy() ? 'Сохраняем...' : 'Добавить расход' }}
+                </button>
+              </div>
+            </form>
+          }
+
           @if (event.expenses.length) {
             <div class="expense-list">
               @for (expense of event.expenses; track trackById($index, expense)) {
@@ -167,6 +308,15 @@
                     <span class="status-pill" [class.status-pill--approved]="expense.approved">
                       {{ expense.approved ? 'Подтвержден' : 'Ожидает подтверждения' }}
                     </span>
+                    @if (canManageEvent() && !expense.approved) {
+                      <button class="button button--ghost" type="button" (click)="approveExpense(expense)">Подтвердить</button>
+                    }
+                    @if (canManageEvent()) {
+                      <button class="button button--ghost" type="button" (click)="removeExpense(expense.id)">
+                        <app-ui-icon name="trash" />
+                        <span>Удалить</span>
+                      </button>
+                    }
                   </div>
                 </article>
               }

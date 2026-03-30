@@ -17,6 +17,10 @@ export class UsersService {
     );
   }
 
+  options(): Observable<UserListItem[]> {
+    return this.http.get<UserListItem[]>(`${this.apiBaseUrl}/users/options/active`);
+  }
+
   create(payload: CreateUserPayload): Observable<UserListItem> {
     return this.http.post<UserListItem>(`${this.apiBaseUrl}/users`, payload);
   }

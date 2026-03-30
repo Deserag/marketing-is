@@ -1,22 +1,33 @@
 <div class="app-shell" [class.app-shell--collapsed]="navigationCollapsed()">
   <aside class="panel app-shell__sidebar" [class.app-shell__sidebar--collapsed]="navigationCollapsed()">
     <div class="app-shell__sidebar-top">
-      <a class="app-shell__brand" routerLink="/dashboard" aria-label="Система управления маркетинга">
-        <div class="app-shell__brand-mark">СУ</div>
+      <div class="app-shell__sidebar-head">
+        <a class="app-shell__brand" routerLink="/dashboard" aria-label="Система управления маркетингом">
+          <div class="app-shell__brand-mark">СУ</div>
 
+          @if (!navigationCollapsed()) {
+            <h1>Система управления маркетингом</h1>
+          }
+        </a>
+
+        <button
+          class="button button--ghost app-shell__toggle"
+          type="button"
+          (click)="toggleNavigation()"
+          [attr.aria-label]="navigationCollapsed() ? 'Развернуть меню' : 'Свернуть меню'"
+          [title]="navigationCollapsed() ? 'Развернуть меню' : 'Свернуть меню'"
+        >
+          <app-ui-icon [name]="navigationCollapsed() ? 'chevron-right' : 'chevron-left'" />
+        </button>
+      </div>
+
+      <button class="button button--ghost app-shell__profile" type="button" (click)="openProfileDialog()">
+        <span class="app-shell__profile-avatar">{{ currentUserName().charAt(0) || 'П' }}</span>
         @if (!navigationCollapsed()) {
-          <h1>Система управления маркетинга</h1>
+          <span class="app-shell__profile-text">
+            <strong>{{ currentUserName() }}</strong>
+          </span>
         }
-      </a>
-
-      <button
-        class="button button--ghost app-shell__toggle"
-        type="button"
-        (click)="toggleNavigation()"
-        [attr.aria-label]="navigationCollapsed() ? 'Развернуть меню' : 'Свернуть меню'"
-        [title]="navigationCollapsed() ? 'Развернуть меню' : 'Свернуть меню'"
-      >
-        <app-ui-icon [name]="navigationCollapsed() ? 'chevron-right' : 'chevron-left'" />
       </button>
     </div>
 
@@ -30,12 +41,7 @@
         }
       </a>
 
-      <a
-        routerLink="/events"
-        routerLinkActive="is-active"
-        aria-label="Мероприятия"
-        title="Мероприятия"
-      >
+      <a routerLink="/events" routerLinkActive="is-active" aria-label="Мероприятия" title="Мероприятия">
         <span class="app-shell__nav-icon">
           <app-ui-icon name="events" />
         </span>
@@ -44,12 +50,7 @@
         }
       </a>
 
-      <a
-        routerLink="/companies"
-        routerLinkActive="is-active"
-        aria-label="Компании"
-        title="Компании"
-      >
+      <a routerLink="/companies" routerLinkActive="is-active" aria-label="Компании" title="Компании">
         <span class="app-shell__nav-icon">
           <app-ui-icon name="companies" />
         </span>
@@ -58,12 +59,7 @@
         }
       </a>
 
-      <a
-        routerLink="/calendar"
-        routerLinkActive="is-active"
-        aria-label="Календарь"
-        title="Календарь"
-      >
+      <a routerLink="/calendar" routerLinkActive="is-active" aria-label="Календарь" title="Календарь">
         <span class="app-shell__nav-icon">
           <app-ui-icon name="calendar" />
         </span>
@@ -72,13 +68,38 @@
         }
       </a>
 
-      @if (auth.access().canViewUsers) {
+      <a
+        routerLink="/my-calendar"
+        routerLinkActive="is-active"
+        aria-label="Мой календарь"
+        title="Мой календарь"
+      >
+        <span class="app-shell__nav-icon">
+          <app-ui-icon name="calendar" />
+        </span>
+        @if (!navigationCollapsed()) {
+          <strong>Мой календарь</strong>
+        }
+      </a>
+
+      @if (auth.access().canViewFinance) {
         <a
-          routerLink="/users"
+          routerLink="/analytics"
           routerLinkActive="is-active"
-          aria-label="Пользователи"
-          title="Пользователи"
+          aria-label="ИИ-аналитика"
+          title="ИИ-аналитика"
         >
+          <span class="app-shell__nav-icon">
+            <app-ui-icon name="analytics" />
+          </span>
+          @if (!navigationCollapsed()) {
+            <strong>ИИ-аналитика</strong>
+          }
+        </a>
+      }
+
+      @if (auth.access().canViewUsers) {
+        <a routerLink="/users" routerLinkActive="is-active" aria-label="Пользователи" title="Пользователи">
           <span class="app-shell__nav-icon">
             <app-ui-icon name="users" />
           </span>
@@ -89,12 +110,7 @@
       }
 
       @if (auth.access().canAccessAdminPanel) {
-        <a
-          routerLink="/admin-panel"
-          routerLinkActive="is-active"
-          aria-label="Админка"
-          title="Админка"
-        >
+        <a routerLink="/admin-panel" routerLinkActive="is-active" aria-label="Админка" title="Админка">
           <span class="app-shell__nav-icon">
             <app-ui-icon name="admin" />
           </span>
@@ -105,17 +121,101 @@
       }
     </nav>
 
-    <button class="button button--primary app-shell__logout" type="button" (click)="logout()">
-      <app-ui-icon name="logout" />
-      @if (!navigationCollapsed()) {
-        <span>Выйти из системы</span>
-      }
-    </button>
+    <div class="app-shell__sidebar-bottom">
+      <button class="button button--primary app-shell__logout" type="button" (click)="logout()">
+        <app-ui-icon name="logout" />
+        @if (!navigationCollapsed()) {
+          <span>Выйти из системы</span>
+        }
+      </button>
+    </div>
   </aside>
 
   <section class="app-shell__main">
+    @if (profileSuccessMessage()) {
+      <div class="form-message form-message--success app-shell__status">{{ profileSuccessMessage() }}</div>
+    }
+
     <div class="app-shell__content">
       <router-outlet />
     </div>
   </section>
 </div>
+
+<app-modal-window [opened]="profileDialogOpen()" title="Мой профиль" description="" (close)="closeProfileDialog()">
+  @if (profileErrorMessage()) {
+    <div class="form-message form-message--error">{{ profileErrorMessage() }}</div>
+  }
+
+  <form [formGroup]="profileForm" (ngSubmit)="submitProfile()">
+    <div class="form-field">
+      <label for="profile-login">Логин</label>
+      <input id="profile-login" type="text" formControlName="login" [class.input-invalid]="fieldInvalid('login')" />
+      @if (fieldError('login'); as error) {
+        <small>{{ error }}</small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label for="profile-email">Email</label>
+      <input id="profile-email" type="email" formControlName="email" [class.input-invalid]="fieldInvalid('email')" />
+      @if (fieldError('email'); as error) {
+        <small>{{ error }}</small>
+      }
+    </div>
+
+    <div class="app-shell__profile-grid">
+      <div class="form-field">
+        <label for="profile-last-name">Фамилия</label>
+        <input
+          id="profile-last-name"
+          type="text"
+          formControlName="lastName"
+          [class.input-invalid]="fieldInvalid('lastName')"
+        />
+        @if (fieldError('lastName'); as error) {
+          <small>{{ error }}</small>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="profile-first-name">Имя</label>
+        <input
+          id="profile-first-name"
+          type="text"
+          formControlName="firstName"
+          [class.input-invalid]="fieldInvalid('firstName')"
+        />
+        @if (fieldError('firstName'); as error) {
+          <small>{{ error }}</small>
+        }
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label for="profile-middle-name">Отчество</label>
+      <input id="profile-middle-name" type="text" formControlName="middleName" />
+    </div>
+
+    <div class="form-field">
+      <label for="profile-password">Новый пароль</label>
+      <input
+        id="profile-password"
+        type="password"
+        formControlName="password"
+        placeholder="Оставьте пустым, если менять не нужно"
+        [class.input-invalid]="fieldInvalid('password')"
+      />
+      @if (fieldError('password'); as error) {
+        <small>{{ error }}</small>
+      }
+    </div>
+
+    <div class="app-shell__profile-actions">
+      <button class="button button--ghost" type="button" (click)="closeProfileDialog()">Отмена</button>
+      <button class="button button--primary" type="submit" [disabled]="profileSubmitting()">
+        {{ profileSubmitting() ? 'Сохраняем...' : 'Сохранить' }}
+      </button>
+    </div>
+  </form>
+</app-modal-window>

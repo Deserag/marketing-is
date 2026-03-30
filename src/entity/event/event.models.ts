@@ -5,12 +5,18 @@ export interface EventListQuery {
   size?: number;
   search?: string;
   type?: string;
+  responsibleId?: string;
+  mine?: boolean;
+  startDate?: string;
+  endDate?: string;
 }
+
+export type EventType = 'WEBINAR' | 'MEETING' | 'CAMPAIGN';
 
 export interface EventListItem {
   id: string;
   name: string;
-  type: string;
+  type: EventType;
   startDate: string;
   endDate?: string | null;
   description?: string | null;
@@ -30,29 +36,27 @@ export interface EventListItem {
   expensesCount: number;
   metricsCount: number;
   remindersCount: number;
+  schedule?: {
+    hasExplicitEnd: boolean;
+    durationMinutes: number | null;
+    isMultiDay: boolean;
+  };
 }
 
 export interface EventParticipant {
   id: string;
   eventId: string;
-  companyEmployeeId: string;
+  userId: string;
   createdAt: string;
   updatedAt: string;
-  companyEmployee: {
+  user: {
     id: string;
+    login: string;
+    email: string;
+    role: UserRole;
     lastName: string;
     firstName: string;
     middleName?: string | null;
-    email?: string | null;
-    phone?: string | null;
-    vk?: string | null;
-    telegram?: string | null;
-    company: {
-      id: string;
-      name: string;
-      inn: string;
-      kpp?: string | null;
-    };
   };
 }
 
@@ -86,9 +90,50 @@ export interface EventReminder {
   createdAt: string;
 }
 
-export interface EventDetails extends Omit<EventListItem, 'participantsCount' | 'expensesCount' | 'metricsCount' | 'remindersCount'> {
+export interface EventDetails
+  extends Omit<
+    EventListItem,
+    'participantsCount' | 'expensesCount' | 'metricsCount' | 'remindersCount'
+  > {
   participants: EventParticipant[];
   expenses: EventExpense[];
   metrics: EventMetric[];
   reminders: EventReminder[];
+}
+
+export interface CreateEventPayload {
+  name: string;
+  type: EventType;
+  startDate: string;
+  endDate?: string;
+  description?: string;
+  responsibleId?: string;
+  participants?: string[];
+}
+
+export interface UpdateEventPayload {
+  name?: string;
+  type?: EventType;
+  startDate?: string;
+  endDate?: string | null;
+  description?: string | null;
+  responsibleId?: string;
+  participants?: string[];
+}
+
+export interface CreateEventExpensePayload {
+  name: string;
+  type: 'ADVERTISING' | 'RENT' | 'CONTENT' | 'OTHER';
+  price: number;
+  currency: 'RUB' | 'USD' | 'EUR';
+}
+
+export interface CreateEventMetricPayload {
+  leads?: number;
+  sales?: number;
+  revenue?: number;
+}
+
+export interface CreateEventReminderPayload {
+  remindBeforeHours: number;
 }

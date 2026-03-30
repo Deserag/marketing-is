@@ -1,0 +1,150 @@
+<section class="panel project-management">
+  <header class="project-management__header">
+    <div>
+      <span class="eyebrow">Проекты</span>
+      <h2>Рабочие проекты</h2>
+      <p>Списочный формат для поиска, редактирования и быстрого перехода в карточку проекта.</p>
+    </div>
+
+    <div class="project-management__actions">
+      @if (canCreate()) {
+        <button class="button button--primary" type="button" (click)="openCreateDialog()">
+          <app-ui-icon name="plus" />
+          <span>Создать проект</span>
+        </button>
+      }
+    </div>
+  </header>
+
+  @if (successMessage()) {
+    <div class="form-message form-message--success">{{ successMessage() }}</div>
+  }
+
+  @if (errorMessage() && !dialogOpen()) {
+    <div class="form-message form-message--error">{{ errorMessage() }}</div>
+  }
+
+  <div class="project-management__toolbar">
+    <input [formControl]="searchControl" type="text" placeholder="Поиск по названию, цели, результату или участникам" />
+    <button class="button button--ghost" type="button" (click)="applySearch()">Найти</button>
+    <button class="button button--ghost" type="button" (click)="reload()">Обновить</button>
+  </div>
+
+  @if (loading()) {
+    <p class="empty-note">Загружаем проекты...</p>
+  } @else if (pageData()?.rows?.length) {
+    <div class="project-list">
+      @for (project of pageData()!.rows; track trackById($index, project)) {
+        <article class="project-row">
+          <div class="project-row__content">
+            <div class="project-row__head">
+              <div>
+                <h3>{{ project.name }}</h3>
+                <p>{{ description(project) }}</p>
+              </div>
+
+              <div class="project-row__chips">
+                <span class="chip chip--muted">{{ project._count.participants }} участников</span>
+                <span class="chip chip--muted">{{ project._count.sprints }} задач</span>
+                <span class="chip chip--muted">{{ project._count.expenses }} расходов</span>
+              </div>
+            </div>
+
+            <div class="project-row__facts">
+              @if (project.goal) {
+                <span>Цель: {{ project.goal }}</span>
+              }
+              @if (project.result) {
+                <span>Результат: {{ project.result }}</span>
+              }
+              @if (project.resultFile?.name) {
+                <span>Файл: {{ project.resultFile?.name }}</span>
+              }
+            </div>
+
+            <div class="timestamp-list">
+              <span class="chip chip--created">Создан: {{ project.createdAt | date: 'd MMM y, HH:mm' }}</span>
+              <span class="chip chip--updated">Обновлен: {{ project.updatedAt | date: 'd MMM y, HH:mm' }}</span>
+            </div>
+          </div>
+
+          <div class="project-row__actions">
+            @if (canEdit()) {
+              <button class="button button--ghost" type="button" (click)="editProject(project)">
+                <app-ui-icon name="edit" />
+                <span>Изменить</span>
+              </button>
+            }
+
+            <a class="button button--ghost" [routerLink]="['/projects', project.id]">Открыть</a>
+
+            @if (canDelete()) {
+              <button class="button button--danger" type="button" (click)="deleteProject(project)">
+                <app-ui-icon name="trash" />
+                <span>Удалить</span>
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+
+    <app-pagination-controls
+      [currentPage]="pageData()!.currentPage"
+      [totalPages]="pageData()!.totalPages"
+      [totalCount]="pageData()!.totalCount"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="pageSizeOptions"
+      itemLabel="проектов"
+      (pageChange)="changePage($event)"
+      (pageSizeChange)="changePageSize($event)"
+    />
+  } @else {
+    <p class="empty-note">Проекты по текущему фильтру не найдены.</p>
+  }
+
+  <app-modal-window
+    [opened]="dialogOpen()"
+    [title]="dialogTitle()"
+    [description]="isEditing() ? 'Обновите название, описание и цели проекта.' : 'Заполните базовые данные нового проекта.'"
+    (close)="closeDialog()"
+  >
+    @if (errorMessage() && dialogOpen()) {
+      <div class="form-message form-message--error">{{ errorMessage() }}</div>
+    }
+
+    <form class="project-management__form" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="form-field">
+        <label for="project-name">Название проекта</label>
+        <input id="project-name" type="text" formControlName="name" [class.input-invalid]="fieldInvalid('name')" />
+        @if (fieldInvalid('name')) {
+          <small>Название проекта обязательно.</small>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="project-description">Описание</label>
+        <textarea id="project-description" formControlName="description"></textarea>
+      </div>
+
+      <div class="project-management__form-grid">
+        <div class="form-field">
+          <label for="project-goal">Цель</label>
+          <textarea id="project-goal" formControlName="goal"></textarea>
+        </div>
+
+        <div class="form-field">
+          <label for="project-result">Результат</label>
+          <textarea id="project-result" formControlName="result"></textarea>
+        </div>
+      </div>
+
+      <div class="project-management__submit">
+        <button class="button button--ghost" type="button" (click)="closeDialog()">Отмена</button>
+        <button class="button button--primary" type="submit" [disabled]="submitting()">
+          {{ submitting() ? 'Сохраняем...' : isEditing() ? 'Сохранить' : 'Создать' }}
+        </button>
+      </div>
+    </form>
+  </app-modal-window>
+</section>

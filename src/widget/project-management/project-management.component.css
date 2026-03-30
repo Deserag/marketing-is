@@ -1,0 +1,144 @@
+:host {
+  display: block;
+}
+
+.project-management {
+  display: grid;
+  gap: 1rem;
+  padding: 1.35rem;
+  backdrop-filter: none;
+}
+
+.project-management__header,
+.project-management__toolbar,
+.project-management__submit,
+.project-row,
+.project-row__head,
+.project-row__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.project-management__header,
+.project-management__toolbar,
+.project-row,
+.project-row__head {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.project-management__header h2 {
+  margin: 0.45rem 0 0.35rem;
+  font-size: 1.55rem;
+}
+
+.project-management__header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.project-management__actions,
+.project-row__actions,
+.project-row__chips,
+.project-row__facts {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.project-management__toolbar input {
+  flex: 1;
+}
+
+.project-management__form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.project-management__form .form-field {
+  margin-top: 0;
+}
+
+.project-management__form textarea {
+  min-height: 8rem;
+}
+
+.project-management__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.project-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.project-row {
+  padding: 1rem;
+  border-radius: 1.3rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(22, 33, 43, 0.08);
+}
+
+.project-row__content {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.project-row h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
+}
+
+.project-row p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.project-row__chips {
+  justify-content: flex-end;
+}
+
+.project-row__facts span {
+  padding: 0.55rem 0.8rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(22, 33, 43, 0.08);
+  color: var(--text-muted);
+}
+
+.project-row__actions {
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.project-row__actions a {
+  text-decoration: none;
+}
+
+.project-management__submit {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 1.1rem;
+}
+
+@media (max-width: 860px) {
+  .project-management__header,
+  .project-management__toolbar,
+  .project-row,
+  .project-row__head,
+  .project-row__actions {
+    flex-direction: column;
+  }
+
+  .project-management__form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .project-row__chips {
+    justify-content: flex-start;
+  }
+}

@@ -1,27 +1,29 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { forkJoin, map, of, switchMap, take } from 'rxjs';
-import { EventListItem } from '../../entity/event/event.models';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { take } from 'rxjs';
+import { AuthService } from '../../entity/auth/auth.service';
+import {
+  CreateEventPayload,
+  EventDetails,
+  EventListItem,
+  EventType,
+  UpdateEventPayload,
+} from '../../entity/event/event.models';
 import { EventsService } from '../../entity/event/event.service';
-import { ProjectListItem, ProjectSprint } from '../../entity/project/project.models';
-import { ProjectsService } from '../../entity/project/project.service';
-import { MetricCardComponent } from '../../widget/metric-card/metric-card.component';
+import { UserListItem } from '../../entity/user/user.models';
+import { UsersService } from '../../entity/user/user.service';
+import { ModalWindowComponent } from '../../widget/modal-window/modal-window.component';
 import { UiIconComponent } from '../../widget/ui-icon/ui-icon.component';
 
-type CalendarEntryKind = 'project' | 'task' | 'event';
-
-type CalendarEntry = {
-  id: string;
-  kind: CalendarEntryKind;
-  title: string;
-  subtitle: string;
-  meta: string;
-  startDate: Date;
-  endDate: Date;
-  route: string[];
-};
+type CalendarViewMode = 'all' | 'mine';
 
 type CalendarDay = {
   key: string;
@@ -29,32 +31,62 @@ type CalendarDay = {
   inCurrentMonth: boolean;
   isToday: boolean;
   isSelected: boolean;
-  totalCount: number;
-  counts: Record<CalendarEntryKind, number>;
-};
-
-type ProjectSchedule = {
-  project: ProjectListItem;
-  sprints: ProjectSprint[];
+  events: EventListItem[];
+  hiddenCount: number;
 };
 
 @Component({
   selector: 'app-calendar-page',
-  imports: [DatePipe, RouterLink, MetricCardComponent, UiIconComponent],
+  imports: [DatePipe, ReactiveFormsModule, ModalWindowComponent, UiIconComponent],
   templateUrl: './calendar-page.component.html',
   styleUrl: './calendar-page.component.css',
 })
 export class CalendarPageComponent {
-  private readonly projectsService = inject(ProjectsService);
+  private readonly formBuilder = inject(NonNullableFormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
+  protected readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   private readonly eventsService = inject(EventsService);
+  private readonly usersService = inject(UsersService);
 
   protected readonly loading = signal(true);
+  protected readonly refreshing = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly successMessage = signal<string | null>(null);
+  protected readonly viewMode = signal<CalendarViewMode>('all');
   protected readonly viewMonth = signal(this.startOfMonth(new Date()));
-  protected readonly selectedDateKey = signal(this.toDateKey(new Date()));
-  protected readonly projectSchedules = signal<ProjectSchedule[]>([]);
+  protected readonly selectedDateKey = signal<string | null>(null);
   protected readonly events = signal<EventListItem[]>([]);
+  protected readonly responsibles = signal<UserListItem[]>([]);
+  protected readonly dialogOpen = signal(false);
+  protected readonly dialogLoading = signal(false);
+  protected readonly dialogSubmitting = signal(false);
+  protected readonly dialogErrorMessage = signal<string | null>(null);
+  protected readonly selectedEventId = signal<string | null>(null);
   protected readonly weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  protected readonly currentUserId = computed(
+    () => this.auth.profile()?.id ?? this.auth.session()?.sub ?? null,
+  );
+  protected readonly pageTitle = computed(() =>
+    this.viewMode() === 'mine' ? 'Мой календарь' : 'Календарь событий',
+  );
+  protected readonly isEditing = computed(() => !!this.selectedEventId());
+  protected readonly dialogTitle = computed(() =>
+    this.isEditing() ? 'Редактирование события' : 'Создание события',
+  );
+
+  protected readonly form = this.formBuilder.group({
+    name: ['', [Validators.required]],
+    type: ['WEBINAR' as EventType, [Validators.required]],
+    startDate: ['', [Validators.required]],
+    endDate: [''],
+    description: [''],
+    responsibleId: ['', [Validators.required]],
+    participants: this.formBuilder.control<string[]>([]),
+  });
+
+  private hasLoadedCalendar = false;
 
   protected readonly monthLabel = computed(() =>
     new Intl.DateTimeFormat('ru-RU', {
@@ -63,110 +95,70 @@ export class CalendarPageComponent {
     }).format(this.viewMonth()),
   );
 
-  protected readonly selectedDate = computed(() => this.dateFromKey(this.selectedDateKey()));
+  protected readonly selectedDate = computed(() =>
+    this.selectedDateKey() ? this.dateFromKey(this.selectedDateKey()!) : null,
+  );
 
-  protected readonly entries = computed<CalendarEntry[]>(() => {
-    const projectEntries = this.projectSchedules().map(({ project, sprints }) => {
-      const schedule = this.resolveProjectWindow(project, sprints);
-
-      return {
-        id: `project-${project.id}`,
-        kind: 'project' as const,
-        title: project.name,
-        subtitle: sprints.length
-          ? 'Период проекта собран по задачам и спринтам.'
-          : 'У проекта пока нет задач, поэтому он отмечен датой создания.',
-        meta: sprints.length ? `${sprints.length} задач в проекте` : 'Проект без задач',
-        startDate: schedule.startDate,
-        endDate: schedule.endDate,
-        route: ['/projects', project.id],
-      };
-    });
-
-    const taskEntries = this.projectSchedules().flatMap(({ project, sprints }) =>
-      sprints.map((sprint) => ({
-        id: `task-${sprint.id}`,
-        kind: 'task' as const,
-        title: sprint.taskText,
-        subtitle: project.name,
-        meta: sprint.taskFile?.name ? `Файл: ${sprint.taskFile.name}` : 'Задача проекта',
-        startDate: this.asDate(sprint.startDate),
-        endDate: this.asDate(sprint.endDate ?? sprint.startDate),
-        route: ['/projects', project.id],
-      })),
-    );
-
-    const eventEntries = this.events().map((event) => ({
-      id: `event-${event.id}`,
-      kind: 'event' as const,
-      title: event.name,
-      subtitle: this.eventTypeLabel(event.type),
-      meta: [event.responsible.firstName, event.responsible.lastName].filter(Boolean).join(' '),
-      startDate: this.asDate(event.startDate),
-      endDate: this.asDate(event.endDate ?? event.startDate),
-      route: ['/events', event.id],
-    }));
-
-    return [...projectEntries, ...taskEntries, ...eventEntries].sort(
-      (left, right) => left.startDate.getTime() - right.startDate.getTime(),
-    );
-  });
+  protected readonly todayEventsCount = computed(() =>
+    this.eventsForDate(this.events(), new Date()).length,
+  );
 
   protected readonly days = computed<CalendarDay[]>(() => {
     const month = this.viewMonth();
     const gridStart = this.startOfWeek(this.startOfMonth(month));
-    const entries = this.entries();
-    const selectedKey = this.selectedDateKey();
     const todayKey = this.toDateKey(new Date());
+    const selectedKey = this.selectedDateKey();
+    const events = this.events();
 
     return Array.from({ length: 42 }, (_, index) => {
       const date = new Date(gridStart);
       date.setDate(gridStart.getDate() + index);
 
-      const key = this.toDateKey(date);
-      const dayEntries = this.entriesForDate(entries, date);
+      const dayEvents = this.eventsForDate(events, date).sort(
+        (left, right) => new Date(left.startDate).getTime() - new Date(right.startDate).getTime(),
+      );
 
       return {
-        key,
+        key: this.toDateKey(date),
         date,
         inCurrentMonth: date.getMonth() === month.getMonth(),
-        isToday: key === todayKey,
-        isSelected: key === selectedKey,
-        totalCount: dayEntries.length,
-        counts: {
-          project: dayEntries.filter((entry) => entry.kind === 'project').length,
-          task: dayEntries.filter((entry) => entry.kind === 'task').length,
-          event: dayEntries.filter((entry) => entry.kind === 'event').length,
-        },
+        isToday: this.toDateKey(date) === todayKey,
+        isSelected: this.toDateKey(date) === selectedKey,
+        events: dayEvents.slice(0, 2),
+        hiddenCount: Math.max(dayEvents.length - 2, 0),
       };
     });
   });
 
-  protected readonly selectedDayEntries = computed(() =>
-    this.entriesForDate(this.entries(), this.selectedDate()).sort(
-      (left, right) => left.startDate.getTime() - right.startDate.getTime(),
-    ),
-  );
+  protected readonly selectedDayEvents = computed(() => {
+    const selectedDate = this.selectedDate();
 
-  protected readonly projectCount = computed(() => this.projectSchedules().length);
-  protected readonly taskCountInMonth = computed(
-    () =>
-      this.entries().filter(
-        (entry) => entry.kind === 'task' && this.isInCurrentMonth(entry.startDate, this.viewMonth()),
-      ).length,
-  );
-  protected readonly eventCountInMonth = computed(
-    () =>
-      this.entries().filter(
-        (entry) => entry.kind === 'event' && this.isInCurrentMonth(entry.startDate, this.viewMonth()),
-      ).length,
-  );
-  protected readonly busyDaysCount = computed(
-    () => this.days().filter((day) => day.inCurrentMonth && day.totalCount > 0).length,
-  );
+    if (!selectedDate) {
+      return [];
+    }
+
+    return this.eventsForDate(this.events(), selectedDate).sort(
+      (left, right) => new Date(left.startDate).getTime() - new Date(right.startDate).getTime(),
+    );
+  });
 
   constructor() {
+    this.loadResponsibleOptions();
+    this.resetForm();
+
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
+      this.viewMode.set(data['mode'] === 'mine' ? 'mine' : 'all');
+      this.selectedDateKey.set(null);
+      this.loadCalendar();
+    });
+  }
+
+  protected reload(): void {
     this.loadCalendar();
+  }
+
+  protected closeSelectedDate(): void {
+    this.selectedDateKey.set(null);
   }
 
   protected previousMonth(): void {
@@ -178,9 +170,9 @@ export class CalendarPageComponent {
   }
 
   protected goToToday(): void {
-    const today = new Date();
-    this.viewMonth.set(this.startOfMonth(today));
-    this.selectedDateKey.set(this.toDateKey(today));
+    this.viewMonth.set(this.startOfMonth(new Date()));
+    this.selectedDateKey.set(null);
+    this.loadCalendar();
   }
 
   protected selectDay(day: CalendarDay): void {
@@ -188,162 +180,353 @@ export class CalendarPageComponent {
 
     if (!day.inCurrentMonth) {
       this.viewMonth.set(this.startOfMonth(day.date));
+      this.loadCalendar();
     }
   }
 
-  protected entryTypeLabel(kind: CalendarEntryKind): string {
-    const labels: Record<CalendarEntryKind, string> = {
-      project: 'Проект',
-      task: 'Задача',
-      event: 'Мероприятие',
-    };
+  protected openCreateDialog(date?: Date): void {
+    if (!this.auth.access().canCreateEvents) {
+      return;
+    }
 
-    return labels[kind];
+    this.selectedEventId.set(null);
+    this.resetForm(date);
+    this.dialogLoading.set(false);
+    this.dialogErrorMessage.set(null);
+    this.dialogOpen.set(true);
   }
 
-  protected entryDateLabel(entry: CalendarEntry): string {
-    const formatter = new Intl.DateTimeFormat('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-    });
+  protected openEditDialog(event: EventListItem): void {
+    if (!this.canEditEvent(event)) {
+      return;
+    }
 
-    const start = formatter.format(entry.startDate);
-    const end = formatter.format(entry.endDate);
+    this.selectedEventId.set(event.id);
+    this.dialogErrorMessage.set(null);
+    this.dialogLoading.set(true);
+    this.dialogOpen.set(true);
 
-    return start === end ? start : `${start} - ${end}`;
-  }
-
-  protected reload(): void {
-    this.loadCalendar();
-  }
-
-  private loadCalendar(): void {
-    this.loading.set(true);
-    this.errorMessage.set(null);
-
-    this.projectsService
-      .list({ page: 1, size: 100 })
-      .pipe(
-        take(1),
-        switchMap((projectsPage) => {
-          const projectRequests = projectsPage.rows.map((project) =>
-            this.projectsService.sprints(project.id).pipe(map((sprints) => ({ project, sprints }))),
-          );
-
-          return forkJoin({
-            projectSchedules: projectRequests.length
-              ? forkJoin(projectRequests)
-              : of<ProjectSchedule[]>([]),
-            eventsPage: this.eventsService.list({ page: 1, size: 100 }),
-          });
-        }),
-      )
+    this.eventsService
+      .details(event.id)
+      .pipe(take(1))
       .subscribe({
-        next: ({ projectSchedules, eventsPage }) => {
-          this.projectSchedules.set(projectSchedules);
-          this.events.set(eventsPage.rows);
-          this.loading.set(false);
+        next: (details) => {
+          this.fillForm(details);
+          this.dialogLoading.set(false);
         },
         error: (error: unknown) => {
-          this.loading.set(false);
-          this.errorMessage.set(this.resolveErrorMessage(error));
+          this.dialogLoading.set(false);
+          this.dialogErrorMessage.set(this.resolveErrorMessage(error));
         },
       });
   }
 
-  private shiftMonth(offset: number): void {
-    const month = this.viewMonth();
-    const nextMonth = new Date(month.getFullYear(), month.getMonth() + offset, 1);
-
-    this.viewMonth.set(nextMonth);
-    this.selectedDateKey.set(this.toDateKey(nextMonth));
+  protected openEventDetails(eventId: string): void {
+    void this.router.navigate(['/events', eventId]);
   }
 
-  private resolveProjectWindow(project: ProjectListItem, sprints: ProjectSprint[]): {
-    startDate: Date;
-    endDate: Date;
-  } {
-    if (!sprints.length) {
-      const createdAt = this.asDate(project.createdAt);
+  protected closeDialog(): void {
+    this.dialogOpen.set(false);
+    this.dialogLoading.set(false);
+    this.dialogErrorMessage.set(null);
+    this.selectedEventId.set(null);
+    this.resetForm();
+  }
 
-      return {
-        startDate: createdAt,
-        endDate: createdAt,
-      };
+  protected submitDialog(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
     }
 
-    const startDate = sprints.reduce(
-      (current, sprint) => {
-        const date = this.asDate(sprint.startDate);
-        return date.getTime() < current.getTime() ? date : current;
-      },
-      this.asDate(sprints[0].startDate),
-    );
+    const startDate = this.form.controls.startDate.value;
+    const endDate = this.form.controls.endDate.value;
 
-    const endDate = sprints.reduce(
-      (current, sprint) => {
-        const date = this.asDate(sprint.endDate ?? sprint.startDate);
-        return date.getTime() > current.getTime() ? date : current;
-      },
-      this.asDate(sprints[0].endDate ?? sprints[0].startDate),
-    );
+    if (endDate && new Date(endDate).getTime() < new Date(startDate).getTime()) {
+      this.dialogErrorMessage.set('Дата окончания не может быть раньше даты начала.');
+      return;
+    }
 
-    return { startDate, endDate };
+    this.dialogSubmitting.set(true);
+    this.dialogErrorMessage.set(null);
+    this.successMessage.set(null);
+
+    const selectedEventId = this.selectedEventId();
+
+    if (selectedEventId) {
+      this.eventsService
+        .update(selectedEventId, this.buildUpdatePayload())
+        .pipe(take(1))
+        .subscribe({
+          next: (event) => {
+            this.dialogSubmitting.set(false);
+            this.dialogOpen.set(false);
+            this.successMessage.set('Событие обновлено.');
+            this.selectedDateKey.set(this.toDateKey(new Date(event.startDate)));
+            this.selectedEventId.set(null);
+            this.resetForm();
+            this.loadCalendar();
+          },
+          error: (error: unknown) => {
+            this.dialogSubmitting.set(false);
+            this.dialogErrorMessage.set(this.resolveErrorMessage(error));
+          },
+        });
+
+      return;
+    }
+
+    this.eventsService
+      .create(this.buildCreatePayload())
+      .pipe(take(1))
+      .subscribe({
+        next: (event) => {
+          this.dialogSubmitting.set(false);
+          this.dialogOpen.set(false);
+          this.successMessage.set('Событие создано.');
+          this.selectedDateKey.set(this.toDateKey(new Date(event.startDate)));
+          this.resetForm();
+          this.loadCalendar();
+        },
+        error: (error: unknown) => {
+          this.dialogSubmitting.set(false);
+          this.dialogErrorMessage.set(this.resolveErrorMessage(error));
+        },
+      });
   }
 
-  private entriesForDate(entries: CalendarEntry[], date: Date): CalendarEntry[] {
-    const target = this.startOfDay(date).getTime();
-
-    return entries.filter((entry) => {
-      const start = this.startOfDay(entry.startDate).getTime();
-      const end = this.startOfDay(entry.endDate).getTime();
-
-      return start <= target && end >= target;
-    });
+  protected canEditEvent(event: EventListItem): boolean {
+    return this.auth.access().canManageAllEvents || event.responsibleId === this.currentUserId();
   }
 
-  private eventTypeLabel(type: string): string {
-    const labels: Record<string, string> = {
+  protected eventTypeLabel(type: EventType): string {
+    const labels: Record<EventType, string> = {
       WEBINAR: 'Вебинар',
       MEETING: 'Встреча',
       CAMPAIGN: 'Кампания',
     };
 
-    return labels[type] ?? type;
+    return labels[type];
   }
 
-  private resolveErrorMessage(error: unknown): string {
-    if (error instanceof HttpErrorResponse && error.status === 0) {
-      return 'Сервер недоступен. Запустите локальный сервер приложения на порту 3000.';
+  protected eventTimeLabel(event: EventListItem): string {
+    const formatter = new Intl.DateTimeFormat('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const start = formatter.format(new Date(event.startDate));
+
+    if (!event.endDate) {
+      return start;
     }
 
-    return 'Не удалось загрузить календарь задач и мероприятий.';
+    const startDate = new Date(event.startDate);
+    const endDate = new Date(event.endDate);
+
+    if (this.isSameDay(startDate, endDate)) {
+      return `${start} - ${formatter.format(endDate)}`;
+    }
+
+    return `${start} и далее`;
   }
 
-  private isInCurrentMonth(date: Date, month: Date): boolean {
-    return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear();
+  protected selectedDateLabel(): string {
+    const selectedDate = this.selectedDate();
+
+    if (!selectedDate) {
+      return '';
+    }
+
+    return new Intl.DateTimeFormat('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(selectedDate);
+  }
+
+  protected trackById(_index: number, item: { id: string }): string {
+    return item.id;
+  }
+
+  private loadCalendar(): void {
+    if (this.hasLoadedCalendar) {
+      this.refreshing.set(true);
+    } else {
+      this.loading.set(true);
+    }
+
+    this.errorMessage.set(null);
+
+    const intervalStart = this.startOfWeek(this.startOfMonth(this.viewMonth()));
+    const intervalEnd = this.endOfWeek(this.endOfMonth(this.viewMonth()));
+
+    this.eventsService
+      .list({
+        page: 1,
+        size: 1000,
+        startDate: intervalStart.toISOString(),
+        endDate: intervalEnd.toISOString(),
+        mine: this.viewMode() === 'mine' ? true : undefined,
+      })
+      .pipe(take(1))
+      .subscribe({
+        next: (response) => {
+          this.events.set(response.rows);
+          this.loading.set(false);
+          this.refreshing.set(false);
+          this.hasLoadedCalendar = true;
+        },
+        error: (error: unknown) => {
+          this.loading.set(false);
+          this.refreshing.set(false);
+          this.errorMessage.set(this.resolveErrorMessage(error));
+        },
+      });
+  }
+
+  private loadResponsibleOptions(): void {
+    this.usersService
+      .options()
+      .pipe(take(1))
+      .subscribe({
+        next: (users) => {
+          this.responsibles.set(users);
+          this.ensureResponsibleSelection();
+        },
+        error: () => {
+          const profile = this.auth.profile();
+          this.responsibles.set(profile ? [{ ...profile }] : []);
+          this.ensureResponsibleSelection();
+        },
+      });
+  }
+
+  private ensureResponsibleSelection(): void {
+    const currentValue = this.form.controls.responsibleId.value.trim();
+
+    if (currentValue) {
+      return;
+    }
+
+    this.form.controls.responsibleId.setValue(
+      this.currentUserId() ?? this.responsibles()[0]?.id ?? '',
+    );
+  }
+
+  private fillForm(details: EventDetails): void {
+    this.form.reset({
+      name: details.name,
+      type: details.type,
+      startDate: this.toDateTimeLocalValue(details.startDate),
+      endDate: details.endDate ? this.toDateTimeLocalValue(details.endDate) : '',
+      description: details.description ?? '',
+      responsibleId: details.responsibleId,
+      participants: details.participants.map((participant) => participant.userId),
+    });
+  }
+
+  private buildCreatePayload(): CreateEventPayload {
+    const raw = this.form.getRawValue();
+
+    return {
+      name: raw.name.trim(),
+      type: raw.type,
+      startDate: new Date(raw.startDate).toISOString(),
+      endDate: raw.endDate ? new Date(raw.endDate).toISOString() : undefined,
+      description: raw.description.trim() || undefined,
+      responsibleId: raw.responsibleId.trim(),
+      participants: raw.participants,
+    };
+  }
+
+  private buildUpdatePayload(): UpdateEventPayload {
+    const raw = this.form.getRawValue();
+
+    return {
+      name: raw.name.trim(),
+      type: raw.type,
+      startDate: new Date(raw.startDate).toISOString(),
+      endDate: raw.endDate ? new Date(raw.endDate).toISOString() : null,
+      description: raw.description.trim() || null,
+      responsibleId: raw.responsibleId.trim(),
+      participants: raw.participants,
+    };
+  }
+
+  private resetForm(date?: Date): void {
+    const startDate = date ?? this.roundToNearestHour(new Date());
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+    this.form.reset({
+      name: '',
+      type: 'WEBINAR',
+      startDate: this.toDateTimeLocalValue(startDate.toISOString()),
+      endDate: this.toDateTimeLocalValue(endDate.toISOString()),
+      description: '',
+      responsibleId: this.currentUserId() ?? this.responsibles()[0]?.id ?? '',
+      participants: [],
+    });
+  }
+
+  private shiftMonth(offset: number): void {
+    const month = this.viewMonth();
+    this.viewMonth.set(new Date(month.getFullYear(), month.getMonth() + offset, 1));
+    this.selectedDateKey.set(null);
+    this.loadCalendar();
+  }
+
+  private eventsForDate(events: EventListItem[], date: Date): EventListItem[] {
+    const target = this.startOfDay(date).getTime();
+
+    return events.filter((event) => {
+      const start = this.startOfDay(new Date(event.startDate)).getTime();
+      const end = this.startOfDay(new Date(event.endDate ?? event.startDate)).getTime();
+
+      return start <= target && end >= target;
+    });
+  }
+
+  private roundToNearestHour(date: Date): Date {
+    const value = new Date(date);
+    value.setMinutes(0, 0, 0);
+    value.setHours(value.getHours() + 1);
+    return value;
   }
 
   private startOfMonth(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth(), 1);
   }
 
+  private endOfMonth(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  }
+
   private startOfWeek(date: Date): Date {
     const result = new Date(date);
     const day = result.getDay();
     const offset = day === 0 ? -6 : 1 - day;
-
     result.setDate(result.getDate() + offset);
-
     return this.startOfDay(result);
+  }
+
+  private endOfWeek(date: Date): Date {
+    const result = this.startOfWeek(date);
+    result.setDate(result.getDate() + 6);
+    result.setHours(23, 59, 59, 999);
+    return result;
   }
 
   private startOfDay(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
   }
 
-  private asDate(value: string): Date {
-    return new Date(value);
+  private isSameDay(left: Date, right: Date): boolean {
+    return (
+      left.getFullYear() === right.getFullYear() &&
+      left.getMonth() === right.getMonth() &&
+      left.getDate() === right.getDate()
+    );
   }
 
   private toDateKey(date: Date): string {
@@ -357,5 +540,36 @@ export class CalendarPageComponent {
   private dateFromKey(key: string): Date {
     const [year, month, day] = key.split('-').map(Number);
     return new Date(year, month - 1, day);
+  }
+
+  private toDateTimeLocalValue(value: string): string {
+    const date = new Date(value);
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    const hours = `${date.getHours()}`.padStart(2, '0');
+    const minutes = `${date.getMinutes()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  private resolveErrorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      const message = error.error?.message;
+
+      if (typeof message === 'string') {
+        return message;
+      }
+
+      if (Array.isArray(message) && message.length) {
+        return message.join(', ');
+      }
+
+      if (error.status === 0) {
+        return 'Сервер недоступен. Запустите локальный сервер приложения на порту 3000.';
+      }
+    }
+
+    return 'Не удалось загрузить календарь событий.';
   }
 }

@@ -3,7 +3,7 @@
     <div class="panel details-state__card">
       <span class="eyebrow">Проект</span>
       <h2>Загружаем карточку проекта</h2>
-      <p>Подготавливаем описание, команду и задачи по спринтам.</p>
+      <p>Подготавливаем описание, команду, расходы и задачи по спринтам.</p>
     </div>
   </div>
 } @else if (errorMessage()) {
@@ -24,8 +24,10 @@
 
         <div class="details-hero__chips">
           <span class="chip chip--muted">{{ project.createdAt | date: 'd MMMM y' }}</span>
-          @if (project.resultFile?.name) {
-            <span class="chip chip--warm">{{ project.resultFile?.name }}</span>
+          @if (project.resultFile; as resultFile) {
+            <a class="chip chip--warm" [href]="buildDownloadUrl(resultFile.downloadUrl)" target="_blank" rel="noopener">
+              {{ resultFile.name }}
+            </a>
           }
         </div>
       </div>
@@ -60,10 +62,16 @@
         tone="amber"
       />
       <app-metric-card
+        label="Расходы"
+        [value]="expenseCount()"
+        hint="Все расходы по проекту."
+        tone="slate"
+      />
+      <app-metric-card
         label="Итоговый файл"
         [value]="hasResultFile() ? 'Есть' : 'Нет'"
         hint="Наличие итогового артефакта проекта."
-        tone="slate"
+        tone="teal"
       />
     </section>
 
@@ -77,6 +85,57 @@
           <strong>{{ participantCount() }}</strong>
         </div>
 
+        @if (participantSuccess()) {
+          <div class="form-message form-message--success">{{ participantSuccess() }}</div>
+        }
+
+        @if (participantError()) {
+          <div class="form-message form-message--error">{{ participantError() }}</div>
+        }
+
+        @if (canManageProject()) {
+          <form class="details-form" [formGroup]="participantForm" (ngSubmit)="submitParticipant()">
+            <div class="form-field details-form__wide">
+              <label for="project-participant-users">
+                {{ selectedParticipantId() ? 'Пользователь' : 'Пользователи' }}
+              </label>
+              <select
+                id="project-participant-users"
+                class="form-select-multiple"
+                formControlName="userIds"
+                multiple
+                [attr.size]="selectedParticipantId() ? 5 : 8"
+              >
+                @for (user of availableUserOptions(); track user.id) {
+                  <option [value]="user.id">{{ user.lastName }} {{ user.firstName }} · {{ user.role }}</option>
+                }
+              </select>
+              @if (!selectedParticipantId()) {
+                <small>Можно выбрать сразу нескольких пользователей.</small>
+              }
+            </div>
+
+            <div class="form-field">
+              <label for="project-participant-role">Роль в проекте</label>
+              <select id="project-participant-role" formControlName="role">
+                <option value="OWNER">OWNER</option>
+                <option value="MANAGER">MANAGER</option>
+                <option value="LEAD">LEAD</option>
+                <option value="MEMBER">MEMBER</option>
+              </select>
+            </div>
+
+            <div class="details-form__actions details-form__actions--wide">
+              <button class="button button--primary" type="submit" [disabled]="participantBusy()">
+                {{ participantBusy() ? 'Сохраняем...' : selectedParticipantId() ? 'Сохранить участника' : 'Добавить участников' }}
+              </button>
+              @if (selectedParticipantId()) {
+                <button class="button button--ghost" type="button" (click)="cancelParticipantEdit()">Отмена</button>
+              }
+            </div>
+          </form>
+        }
+
         @if (project.participants.length) {
           <div class="participant-list">
             @for (participant of project.participants; track trackById($index, participant)) {
@@ -85,7 +144,17 @@
                   <h3>{{ fullName(participant.user) }}</h3>
                   <p>{{ participant.user.login }} · {{ participant.user.email }}</p>
                 </div>
-                <span class="chip chip--muted">{{ participantRoleLabel(participant.role) }}</span>
+                <div class="participant-list__actions">
+                  <span class="chip chip--muted">{{ participantRoleLabel(participant.role) }}</span>
+                  @if (canManageProject()) {
+                    <button class="button button--ghost" type="button" (click)="editParticipant(participant)">
+                      Изменить
+                    </button>
+                    <button class="button button--ghost" type="button" (click)="removeParticipant(participant.id)">
+                      Удалить
+                    </button>
+                  }
+                </div>
               </article>
             }
           </div>
@@ -103,6 +172,42 @@
           <strong>{{ sprintCount() }}</strong>
         </div>
 
+        @if (sprintSuccess()) {
+          <div class="form-message form-message--success">{{ sprintSuccess() }}</div>
+        }
+
+        @if (sprintError()) {
+          <div class="form-message form-message--error">{{ sprintError() }}</div>
+        }
+
+        @if (canManageProject()) {
+          <form class="details-form details-form--sprint" [formGroup]="sprintForm" (ngSubmit)="submitSprint()">
+            <div class="form-field details-form__wide">
+              <label for="project-sprint-task">Текст задачи</label>
+              <textarea id="project-sprint-task" formControlName="taskText"></textarea>
+            </div>
+
+            <div class="form-field">
+              <label for="project-sprint-start">Начало</label>
+              <input id="project-sprint-start" type="datetime-local" formControlName="startDate" />
+            </div>
+
+            <div class="form-field">
+              <label for="project-sprint-end">Окончание</label>
+              <input id="project-sprint-end" type="datetime-local" formControlName="endDate" />
+            </div>
+
+            <div class="details-form__actions details-form__actions--wide">
+              <button class="button button--primary" type="submit" [disabled]="sprintBusy()">
+                {{ sprintBusy() ? 'Сохраняем...' : selectedSprintId() ? 'Сохранить спринт' : 'Добавить спринт' }}
+              </button>
+              @if (selectedSprintId()) {
+                <button class="button button--ghost" type="button" (click)="cancelSprintEdit()">Отмена</button>
+              }
+            </div>
+          </form>
+        }
+
         @if (project.sprints.length) {
           <div class="sprint-list">
             @for (sprint of project.sprints; track trackById($index, sprint)) {
@@ -114,10 +219,34 @@
                 <div class="sprint-list__content">
                   <h3>{{ sprint.taskText }}</h3>
                   <p>{{ sprintDateLabel(sprint.startDate, sprint.endDate) }}</p>
+                  @if (sprint.taskFile; as taskFile) {
+                    <a
+                      class="chip chip--warm"
+                      [href]="buildDownloadUrl(taskFile.downloadUrl)"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {{ taskFile.name }}
+                    </a>
+                  }
                 </div>
-                @if (sprint.taskFile?.name) {
-                  <span class="chip chip--warm">{{ sprint.taskFile?.name }}</span>
-                }
+                <div class="sprint-list__actions">
+                  @if (canManageProject()) {
+                    <label class="button button--ghost sprint-list__file-button">
+                      <input type="file" (change)="uploadSprintFile(sprint, $event)" />
+                      <span>{{ sprint.taskFile ? 'Заменить файл' : 'Загрузить файл' }}</span>
+                    </label>
+                    @if (sprint.taskFile) {
+                      <button class="button button--ghost" type="button" (click)="removeSprintFile(sprint.id)">Удалить файл</button>
+                    }
+                    <button class="button button--ghost" type="button" (click)="editSprint(sprint)">
+                      Изменить
+                    </button>
+                    <button class="button button--ghost" type="button" (click)="removeSprint(sprint.id)">
+                      Удалить
+                    </button>
+                  }
+                </div>
               </article>
             }
           </div>
@@ -125,6 +254,155 @@
           <p class="empty-note">У проекта пока нет задач со сроками.</p>
         }
       </article>
+    </section>
+
+    <section class="details-grid details-grid--expenses">
+      <article class="panel details-card details-card--wide">
+        <div class="details-card__header">
+          <div>
+            <span class="eyebrow">Расходы</span>
+            <h2>Финансы проекта</h2>
+          </div>
+          <strong>{{ expenseCount() }}</strong>
+        </div>
+
+        @if (expenseSuccess()) {
+          <div class="form-message form-message--success">{{ expenseSuccess() }}</div>
+        }
+
+        @if (expenseError()) {
+          <div class="form-message form-message--error">{{ expenseError() }}</div>
+        }
+
+        @if (canManageProject()) {
+          <form class="details-form details-form--expense" [formGroup]="expenseForm" (ngSubmit)="submitExpense()">
+            <div class="form-field details-form__wide">
+              <label for="project-expense-name">Название расхода</label>
+              <input id="project-expense-name" type="text" formControlName="name" />
+            </div>
+
+            <div class="form-field details-form__wide">
+              <label for="project-expense-description">Описание</label>
+              <textarea id="project-expense-description" formControlName="description"></textarea>
+            </div>
+
+            <div class="form-field">
+              <label for="project-expense-type">Категория</label>
+              <select id="project-expense-type" formControlName="type">
+                <option value="ADVERTISING">Реклама</option>
+                <option value="RENT">Аренда</option>
+                <option value="CONTENT">Контент</option>
+                <option value="OTHER">Другое</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="project-expense-amount">Сумма</label>
+              <input id="project-expense-amount" type="number" min="0" step="0.01" formControlName="amount" />
+            </div>
+
+            <div class="form-field">
+              <label for="project-expense-currency">Валюта</label>
+              <select id="project-expense-currency" formControlName="currency">
+                <option value="RUB">RUB</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+
+            <div class="form-field">
+              <label for="project-expense-date">Дата расхода</label>
+              <input id="project-expense-date" type="datetime-local" formControlName="spentAt" />
+            </div>
+
+            <div class="details-form__actions details-form__actions--wide">
+              <button class="button button--primary" type="submit" [disabled]="expenseBusy()">
+                {{ expenseBusy() ? 'Сохраняем...' : selectedExpenseId() ? 'Сохранить расход' : 'Добавить расход' }}
+              </button>
+              @if (selectedExpenseId()) {
+                <button class="button button--ghost" type="button" (click)="cancelExpenseEdit()">Отмена</button>
+              }
+            </div>
+          </form>
+        }
+
+        @if (project.expenses.length) {
+          <div class="expense-list">
+            @for (expense of project.expenses; track trackById($index, expense)) {
+              <article class="expense-list__item">
+                <div>
+                  <div class="expense-list__head">
+                    <h3>{{ expense.name }}</h3>
+                    <span class="chip chip--warm">{{ formatAmount(expense.amount, expense.currency) }}</span>
+                  </div>
+                  <p>{{ expense.description || 'Описание не заполнено.' }}</p>
+                  <div class="expense-list__meta">
+                    <span>{{ expenseTypeLabel(expense.type) }}</span>
+                    <span>{{ expense.spentAt | date: 'd MMM y, HH:mm' }}</span>
+                    <span>{{ fullName(expense.initiator) }}</span>
+                  </div>
+                </div>
+
+                @if (canManageProject()) {
+                  <div class="participant-list__actions">
+                    <button class="button button--ghost" type="button" (click)="editExpense(expense)">Изменить</button>
+                    <button class="button button--ghost" type="button" (click)="removeExpense(expense.id)">Удалить</button>
+                  </div>
+                }
+              </article>
+            }
+          </div>
+        } @else {
+          <p class="empty-note">У проекта пока нет расходов.</p>
+        }
+      </article>
+
+      <section class="panel details-card result-file-card">
+        <div class="details-card__header">
+          <div>
+            <span class="eyebrow">Итоговый файл</span>
+            <h2>Файл результата проекта</h2>
+          </div>
+          <strong>{{ hasResultFile() ? 'Есть' : 'Нет' }}</strong>
+        </div>
+
+        @if (resultFileSuccess()) {
+          <div class="form-message form-message--success">{{ resultFileSuccess() }}</div>
+        }
+
+        @if (resultFileError()) {
+          <div class="form-message form-message--error">{{ resultFileError() }}</div>
+        }
+
+        <div class="result-file">
+          @if (project.resultFile; as resultFile) {
+            <a
+              class="chip chip--warm"
+              [href]="buildDownloadUrl(resultFile.downloadUrl)"
+              target="_blank"
+              rel="noopener"
+            >
+              {{ resultFile.name }}
+            </a>
+          } @else {
+            <p class="empty-note">Итоговый файл еще не загружен.</p>
+          }
+
+          @if (canManageProject()) {
+            <div class="result-file__actions">
+              <label class="button button--primary result-file__upload">
+                <input type="file" (change)="uploadResultFile($event)" />
+                <span>{{ project.resultFile ? 'Заменить файл' : 'Загрузить файл' }}</span>
+              </label>
+              @if (project.resultFile) {
+                <button class="button button--ghost" type="button" (click)="removeResultFile()" [disabled]="resultFileBusy()">
+                  {{ resultFileBusy() ? 'Удаляем...' : 'Удалить файл' }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </section>
     </section>
   </main>
 }

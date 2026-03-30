@@ -1,0 +1,67 @@
+<div class="pagination-controls">
+  <div class="pagination-controls__summary">
+    <p>
+      Всего: <strong>{{ totalCount() }}</strong> {{ itemLabel() }}
+    </p>
+    <span>Страница {{ currentPage() }} из {{ totalPages() || 1 }}</span>
+  </div>
+
+  <div class="pagination-controls__actions">
+    <label class="pagination-controls__size">
+      <span>На странице</span>
+      <select [value]="pageSize()" (change)="changePageSize($any($event.target).value)">
+        @for (size of pageSizeOptions(); track size) {
+          <option [value]="size">{{ size }}</option>
+        }
+      </select>
+    </label>
+
+    <div class="pagination-controls__nav">
+      <button class="button button--ghost" type="button" [disabled]="!canGoBackward()" (click)="previousPage()">
+        Назад
+      </button>
+
+      <div class="pagination-controls__pages">
+        @for (item of pages(); track item.value) {
+          @if (item.type === 'page') {
+            <button
+              class="button"
+              type="button"
+              [class.button--primary]="item.value === currentPage()"
+              [class.button--ghost]="item.value !== currentPage()"
+              (click)="goToPage(item.value)"
+            >
+              {{ item.value }}
+            </button>
+          } @else {
+            <span class="pagination-controls__ellipsis">...</span>
+          }
+        }
+      </div>
+
+      <button class="button button--ghost" type="button" [disabled]="!canGoForward()" (click)="nextPage()">
+        Вперед
+      </button>
+    </div>
+
+    @if ((totalPages() || 1) > 7) {
+      <div class="pagination-controls__jump">
+        <label for="page-jump">Перейти к странице</label>
+        <div>
+          <input
+            #pageInput
+            id="page-jump"
+            type="number"
+            min="1"
+            [max]="totalPages() || 1"
+            [value]="currentPage()"
+            (keyup.enter)="submitJump(pageInput.value)"
+          />
+          <button class="button button--ghost" type="button" (click)="submitJump(pageInput.value)">
+            Перейти
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

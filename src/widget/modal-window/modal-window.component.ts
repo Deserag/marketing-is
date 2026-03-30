@@ -1,7 +1,9 @@
 import { Component, input, output } from '@angular/core';
+import { UiIconComponent } from '../ui-icon/ui-icon.component';
 
 @Component({
   selector: 'app-modal-window',
+  imports: [UiIconComponent],
   templateUrl: './modal-window.component.html',
   styleUrl: './modal-window.component.css',
 })

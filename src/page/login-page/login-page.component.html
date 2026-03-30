@@ -1,40 +1,10 @@
 <main class="login-page">
-  <section class="login-page__showcase">
-    <div class="login-page__brand panel">
-      <span class="eyebrow">Система маркетинга</span>
-      <h1>Единая точка входа в рабочую систему</h1>
-      <p>
-        Спокойный интерфейс для авторизации, защищенной загрузки данных и перехода
-        к основным разделам без лишнего визуального шума.
-      </p>
-
-      <div class="login-page__chips">
-        <span class="chip">Безопасный вход</span>
-        <span class="chip chip--warm">Защищенные разделы</span>
-        <span class="chip chip--muted">Проекты, события и расходы</span>
-      </div>
-    </div>
-
-    <div class="login-page__story">
-      <p class="eyebrow">Подход</p>
-      <h2>Экран входа сразу ведет в рабочее пространство, а не отвлекает лишними деталями</h2>
-      <div class="login-page__highlights">
-        @for (highlight of highlights; track highlight) {
-          <article class="panel login-page__highlight">
-            <span></span>
-            <p>{{ highlight }}</p>
-          </article>
-        }
-      </div>
-    </div>
-  </section>
-
   <section class="login-page__form-wrap">
     <form class="panel login-card" [formGroup]="form" (ngSubmit)="submit()">
       <div class="login-card__header">
         <span class="eyebrow">Авторизация</span>
-        <h2>Вход в рабочее пространство</h2>
-        <p>Используйте корпоративный логин и пароль для доступа к данным.</p>
+        <h1>Вход в систему</h1>
+        <p>Введите логин и пароль, чтобы открыть рабочее пространство.</p>
       </div>
 
       <div class="form-field">
@@ -79,9 +49,6 @@
         }
       </button>
 
-      <p class="login-card__footnote">
-        Для входа нужен запущенный локальный сервер приложения на порту 3000.
-      </p>
     </form>
   </section>
 </main>
