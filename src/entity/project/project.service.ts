@@ -32,6 +32,10 @@ export class ProjectsService {
     );
   }
 
+  options(): Observable<ProjectListItem[]> {
+    return this.http.get<ProjectListItem[]>(`${this.apiBaseUrl}/projects`);
+  }
+
   create(payload: CreateProjectPayload): Observable<ProjectDetails> {
     return this.http.post<ProjectDetails>(`${this.apiBaseUrl}/projects`, payload);
   }

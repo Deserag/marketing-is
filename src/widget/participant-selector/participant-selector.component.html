@@ -1,0 +1,52 @@
+<div
+  class="participant-selector"
+  [class.participant-selector--invalid]="invalid()"
+  [class.participant-selector--disabled]="disabled()"
+>
+  <div class="participant-selector__search">
+    <input
+      type="search"
+      [value]="searchTerm()"
+      [placeholder]="searchPlaceholder()"
+      [disabled]="disabled()"
+      (input)="updateSearch($event)"
+    />
+
+    @if (searchTerm()) {
+      <button
+        class="button button--ghost participant-selector__clear"
+        type="button"
+        [disabled]="disabled()"
+        (click)="clearSearch()"
+      >
+        Сбросить
+      </button>
+    }
+  </div>
+
+  <select
+    class="participant-selector__list"
+    [class.input-invalid]="invalid()"
+    [disabled]="disabled()"
+    [multiple]="multiple()"
+    [size]="effectiveListSize()"
+    (change)="handleSelectionChange($event)"
+  >
+    @if (filteredOptions().length) {
+      @for (option of filteredOptions(); track option.id) {
+        <option [value]="option.id" [selected]="isSelected(option.id)">
+          {{ option.label }}
+        </option>
+      }
+    } @else {
+      <option disabled>{{ noResultsText() }}</option>
+    }
+  </select>
+
+  @if (selectedLabels().length) {
+    <div class="participant-selector__summary">
+      <strong>{{ multiple() ? 'Выбрано:' : 'Выбран:' }}</strong>
+      <span>{{ selectedLabels().join(', ') }}</span>
+    </div>
+  }
+</div>

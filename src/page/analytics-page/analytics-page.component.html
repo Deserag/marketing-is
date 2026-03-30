@@ -1,224 +1,247 @@
 @if (loading()) {
   <div class="page-state">
     <div class="panel page-state__card">
-      <span class="eyebrow">ИИ-аналитика</span>
-      <h2>Загружаем рабочую область</h2>
-      <p>Подтягиваем сохраненные проекты, чаты и сводку по базе.</p>
+      <span class="eyebrow">ИИ ассистент</span>
+      <h2>Собираем рабочее пространство</h2>
+      <p>Подтягиваем диалоги и сохраненные результаты.</p>
     </div>
   </div>
 } @else if (errorMessage()) {
   <div class="page-state">
     <div class="panel page-state__card">
       <span class="eyebrow">Ошибка</span>
-      <h2>Раздел ИИ-аналитики временно недоступен</h2>
+      <h2>Раздел ИИ временно недоступен</h2>
       <p>{{ errorMessage() }}</p>
       <button class="button button--primary" type="button" (click)="refresh()">Повторить</button>
     </div>
   </div>
 } @else {
-  <main class="analytics-page" [class.analytics-page--dark]="theme() === 'dark'">
-    <header class="panel analytics-hero">
-      <div>
-        <span class="eyebrow">ИИ-аналитика</span>
-        <h1>Отчеты по тратам и рабочий чат</h1>
-        <p>Сохраненные проекты, отчеты по тратам и диалог по актуальным данным системы в одном разделе.</p>
+  <main class="ai-workspace">
+    <header class="panel ai-workspace__hero">
+      <div class="ai-workspace__hero-copy">
+        <span class="eyebrow">ИИ ассистент</span>
+        <h1>Чат для любых задач с сохранением полезных итогов</h1>
+        <p>
+          Общайтесь с ассистентом на любую тему. Если обсуждение дало хороший результат, его можно
+          сохранить как проект или отдельный итог и открыть позже.
+        </p>
       </div>
 
-      <div class="analytics-hero__actions">
-        <button class="button button--ghost" type="button" (click)="toggleTheme()">
-          {{ theme() === 'light' ? 'Темная тема' : 'Светлая тема' }}
-        </button>
+      <div class="ai-workspace__hero-actions">
         <button class="button button--ghost" type="button" (click)="refresh()" [disabled]="supportLoading()">
           {{ supportLoading() ? 'Обновляем...' : 'Обновить данные' }}
+        </button>
+        <button class="button button--primary" type="button" (click)="createChat()" [disabled]="chatLoading()">
+          Новый чат
         </button>
       </div>
     </header>
 
-    <section class="analytics-summary">
-      <article class="panel analytics-metric">
-        <span>Проекты</span>
-        <strong>{{ overview()?.totals?.projects ?? 0 }}</strong>
-        <small>Компании: {{ overview()?.totals?.companies ?? 0 }}</small>
-      </article>
-
-      <article class="panel analytics-metric">
-        <span>Мероприятия</span>
-        <strong>{{ overview()?.totals?.events ?? 0 }}</strong>
-        <small>Пользователи: {{ overview()?.totals?.users ?? 0 }}</small>
-      </article>
-
-      <article class="panel analytics-metric analytics-metric--accent">
-        <span>Сумма трат</span>
-        <strong>{{ totalExpensesLabel() }}</strong>
-        <small>Проекты + мероприятия</small>
-      </article>
+    <section class="ai-workspace__stats">
+      @for (stat of workspaceStats(); track stat.label) {
+        <article class="panel stat-card">
+          <span>{{ stat.label }}</span>
+          <strong>{{ stat.value }}</strong>
+          <small>{{ stat.hint }}</small>
+        </article>
+      }
     </section>
 
-    <section class="analytics-dashboard">
-      <article class="panel analytics-chart">
-        <div class="analytics-chart__header">
-          <div>
-            <span class="eyebrow">Срез трат</span>
-            <h2>Крупнейшие категории</h2>
-          </div>
-        </div>
-
-        @if (expenseBars().length) {
-          <div class="analytics-bars">
-            @for (bar of expenseBars(); track bar.label) {
-              <div class="analytics-bar">
-                <div class="analytics-bar__label">
-                  <strong>{{ bar.label }}</strong>
-                  <span>{{ bar.total.toFixed(2) }} · {{ bar.count }}</span>
-                </div>
-                <div class="analytics-bar__track">
-                  <span class="analytics-bar__fill" [style.width.%]="bar.width"></span>
-                </div>
-              </div>
-            }
-          </div>
-        } @else {
-          <p class="empty-note">Пока нет расходов для аналитики.</p>
-        }
-      </article>
-
-      <article class="panel analytics-chart">
-        <div class="analytics-chart__header">
-          <div>
-            <span class="eyebrow">Роли</span>
-            <h2>Состав пользователей</h2>
-          </div>
-        </div>
-
-        <div class="analytics-role-list">
-          @for (row of overview()?.usersByRole ?? []; track row.role) {
-            <div class="analytics-role-item">
-              <strong>{{ row.role }}</strong>
-              <span>{{ row.count }}</span>
-            </div>
-          }
-        </div>
-      </article>
-    </section>
-
-    <section class="analytics-layout">
-      <aside class="analytics-rail">
-        <article class="panel analytics-block">
-          <div class="analytics-block__header">
+    <section class="ai-workspace__layout">
+      <aside class="ai-sidebar">
+        <article class="panel ai-section">
+          <div class="ai-section__header">
             <div>
-              <span class="eyebrow">Сохраненные проекты</span>
-              <h2>Подготовленные карточки</h2>
+              <span class="eyebrow">Диалоги</span>
+              <h2>История чатов</h2>
             </div>
           </div>
 
-          @if (savedProjectCards().length) {
-            <div class="saved-card-list">
-              @for (card of savedProjectCards(); track trackById($index, card)) {
+          @if (chats().length) {
+            <div class="thread-list">
+              @for (chat of chats(); track trackById($index, chat)) {
+                <button
+                  class="thread-card"
+                  type="button"
+                  [class.thread-card--active]="activeChat()?.id === chat.id"
+                  (click)="selectChat(chat)"
+                >
+                  <strong>{{ chat.title }}</strong>
+                  <span>{{ chat.preview || 'Без сообщений' }}</span>
+                  <small>{{ chat.updatedAt | date: 'd MMM y, HH:mm' }}</small>
+                </button>
+              }
+            </div>
+          } @else {
+            <p class="empty-note">Диалогов пока нет. Начните первый разговор с ассистентом.</p>
+          }
+        </article>
+
+        <article class="panel ai-section">
+          <div class="ai-section__header">
+            <div>
+              <span class="eyebrow">Результаты</span>
+              <h2>Сохраненные итоги</h2>
+            </div>
+          </div>
+
+          @if (savedResults().length) {
+            <div class="saved-list">
+              @for (card of savedResults(); track trackById($index, card)) {
                 <button
                   class="saved-card"
                   type="button"
                   [class.saved-card--active]="selectedCardId() === card.id"
                   (click)="selectCard(card)"
                 >
-                  <strong>{{ card.name }}</strong>
-                  <span>{{ card.createdAt | date: 'd MMM y, HH:mm' }}</span>
+                  <div class="saved-card__head">
+                    <strong>{{ card.name }}</strong>
+                    <span class="chip chip--muted">{{ cardKindLabel(card) }}</span>
+                  </div>
+                  <p>{{ cardPreview(card) || 'Сохраненный результат без описания.' }}</p>
+                  <small>{{ card.createdAt | date: 'd MMM y, HH:mm' }}</small>
                 </button>
               }
             </div>
           } @else {
-            <p class="empty-note">Сохраненных проектов пока нет.</p>
-          }
-        </article>
-
-        <article class="panel analytics-block">
-          <div class="analytics-block__header">
-            <div>
-              <span class="eyebrow">Отчеты</span>
-              <h2>Сохраненные сводки</h2>
-            </div>
-          </div>
-
-          @if (savedReportCards().length) {
-            <div class="saved-card-list saved-card-list--compact">
-              @for (card of savedReportCards(); track trackById($index, card)) {
-                <button
-                  class="saved-card"
-                  type="button"
-                  [class.saved-card--active]="selectedCardId() === card.id"
-                  (click)="selectCard(card)"
-                >
-                  <strong>{{ card.name }}</strong>
-                  <span>{{ card.createdAt | date: 'd MMM y, HH:mm' }}</span>
-                </button>
-              }
-            </div>
-          } @else {
-            <p class="empty-note">Сохраненных отчетов пока нет.</p>
-          }
-        </article>
-
-        <article class="panel analytics-block">
-          <div class="analytics-block__header">
-            <div>
-              <span class="eyebrow">Ближайшие события</span>
-              <h2>Календарный фокус</h2>
-            </div>
-          </div>
-
-          @if (overview()?.upcomingEvents?.length) {
-            <div class="mini-list">
-              @for (event of overview()!.upcomingEvents; track event.id) {
-                <a class="mini-list__item" [routerLink]="['/events', event.id]">
-                  <strong>{{ event.name }}</strong>
-                  <span>{{ event.startDate | date: 'd MMM, HH:mm' }}</span>
-                </a>
-              }
-            </div>
-          } @else {
-            <p class="empty-note">Ближайших событий нет.</p>
+            <p class="empty-note">Сохраненных итогов пока нет. Их можно создать из ответа ассистента.</p>
           }
         </article>
       </aside>
 
-      <section class="analytics-main">
-        <article class="panel analytics-block analytics-block--selected">
-          <div class="analytics-block__header">
+      <section class="ai-conversation">
+        <article class="panel ai-section ai-section--conversation">
+          <div class="ai-section__header">
             <div>
-              <span class="eyebrow">Открытая карточка</span>
-              <h2>{{ selectedCard()?.name || 'Карточка не выбрана' }}</h2>
+              <span class="eyebrow">Диалог</span>
+              <h2>{{ activeChat()?.title || 'Новый чат' }}</h2>
             </div>
+            @if (activeChat()) {
+              <span class="chip chip--warm">{{ activeChat()!.messages.length }} сообщений</span>
+            }
+          </div>
 
-            @if (projectIdFromCard(selectedCard()); as projectId) {
-              <a class="button button--ghost" [routerLink]="['/projects', projectId]">Открыть проект</a>
+          @if (chatErrorMessage()) {
+            <div class="form-message form-message--error">{{ chatErrorMessage() }}</div>
+          }
+
+          <div class="message-list">
+            @if (chatLoading()) {
+              <p class="empty-note">Загружаем сообщения...</p>
+            } @else if (activeChat()?.messages?.length) {
+              @for (message of activeChat()!.messages; track trackById($index, message)) {
+                <article
+                  class="message-bubble"
+                  [class.message-bubble--user]="message.role === 'USER'"
+                  [class.message-bubble--assistant]="message.role === 'ASSISTANT'"
+                >
+                  <div class="message-bubble__meta">
+                    <div>
+                      <span class="chip chip--muted">{{ message.role === 'USER' ? 'Вы' : 'Ассистент' }}</span>
+                    </div>
+                    <span>{{ message.createdAt | date: 'd MMM, HH:mm' }}</span>
+                  </div>
+
+                  <p>{{ message.content }}</p>
+
+                  @if (message.role === 'ASSISTANT') {
+                    <div class="message-bubble__actions">
+                      @if (isSavedMessage(message.id)) {
+                        <span class="status-pill status-pill--approved">Результат уже сохранен</span>
+                      } @else {
+                        <button
+                          class="button button--ghost"
+                          type="button"
+                          (click)="openSaveProjectDialog(message)"
+                          [disabled]="isSavingMessage(message.id)"
+                        >
+                          {{ isSavingMessage(message.id) ? 'Сохраняем...' : 'Сохранить как проект' }}
+                        </button>
+                      }
+                    </div>
+                  }
+                </article>
+              }
+            } @else {
+              <p class="empty-note">
+                Спросите что угодно: от идеи проекта и плана запуска до письма клиенту, чек-листа или
+                краткого резюме встречи.
+              </p>
+            }
+          </div>
+
+          <form class="composer" [formGroup]="messageForm" (ngSubmit)="submitMessage()">
+            <textarea
+              formControlName="message"
+              placeholder="Опишите задачу или задайте вопрос. Если нужен ответ по данным CRM, просто упомяните проект, мероприятие, пользователей или расходы."
+            ></textarea>
+
+            <div class="composer__footer">
+              <small>
+                Ассистент может отвечать на общие вопросы и использовать данные CRM, когда вы этого
+                хотите.
+              </small>
+              <button class="button button--primary" type="submit" [disabled]="sending()">
+                {{ sending() ? 'Отправляем...' : 'Отправить' }}
+              </button>
+            </div>
+          </form>
+        </article>
+      </section>
+
+      <aside class="ai-inspector">
+        <article class="panel ai-section ai-section--inspector">
+          <div class="ai-section__header">
+            <div>
+              <span class="eyebrow">Инспектор</span>
+              <h2>{{ selectedCard()?.name || 'Результат не выбран' }}</h2>
+            </div>
+            @if (selectedCard()) {
+              <span class="chip chip--muted">{{ cardKindLabel(selectedCard()) }}</span>
             }
           </div>
 
           @if (selectedCard(); as card) {
             <div class="selected-card">
-              @if (cardText(card, 'description')) {
-                <p>{{ cardText(card, 'description') }}</p>
+              <div class="selected-card__meta">
+                <span>{{ card.createdAt | date: 'd MMM y, HH:mm' }}</span>
+                @if (projectIdFromCard(card); as projectId) {
+                  <a class="button button--ghost" [routerLink]="['/projects', projectId]">Открыть проект</a>
+                }
+              </div>
+
+              @if (cardPreview(card)) {
+                <p class="selected-card__lead">{{ cardPreview(card) }}</p>
               }
+
+              @if (cardText(card, 'description')) {
+                <div class="selected-card__row">
+                  <strong>Описание</strong>
+                  <span>{{ cardText(card, 'description') }}</span>
+                </div>
+              }
+
               @if (cardText(card, 'goal')) {
                 <div class="selected-card__row">
                   <strong>Цель</strong>
                   <span>{{ cardText(card, 'goal') }}</span>
                 </div>
               }
+
               @if (cardText(card, 'result')) {
                 <div class="selected-card__row">
-                  <strong>Результат</strong>
+                  <strong>Результат в проекте</strong>
                   <span>{{ cardText(card, 'result') }}</span>
                 </div>
               }
+
               @if (cardText(card, 'period')) {
                 <div class="selected-card__row">
                   <strong>Период</strong>
                   <span>{{ cardText(card, 'period') }}</span>
                 </div>
               }
-              @if (cardText(card, 'summary')) {
-                <p>{{ cardText(card, 'summary') }}</p>
-              }
+
               @if (cardRows(card).length) {
                 <div class="selected-card__table">
                   @for (row of cardRows(card); track row.label) {
@@ -229,86 +252,54 @@
                   }
                 </div>
               }
-            </div>
-          } @else {
-            <p class="empty-note">Выберите сохраненный проект или отчет слева.</p>
-          }
-        </article>
 
-        <article class="panel analytics-block analytics-chat">
-          <div class="analytics-block__header">
-            <div>
-              <span class="eyebrow">Рабочий чат</span>
-              <h2>{{ activeChat()?.title || 'Новый диалог' }}</h2>
-            </div>
-
-            <div class="analytics-chat__actions">
-              <button class="button button--ghost" type="button" (click)="createChat()" [disabled]="chatLoading()">
-                Новый чат
-              </button>
-            </div>
-          </div>
-
-          @if (chatErrorMessage()) {
-            <div class="form-message form-message--error">{{ chatErrorMessage() }}</div>
-          }
-
-          <div class="analytics-chat__layout">
-            <div class="analytics-chat__threads">
-              @if (chats().length) {
-                @for (chat of chats(); track trackById($index, chat)) {
-                  <button
-                    class="thread-card"
-                    type="button"
-                    [class.thread-card--active]="activeChat()?.id === chat.id"
-                    (click)="selectChat(chat)"
-                  >
-                    <strong>{{ chat.title }}</strong>
-                    <span>{{ chat.preview || 'Без сообщений' }}</span>
-                  </button>
-                }
-              } @else {
-                <p class="empty-note">Чатов пока нет. Можно создать первый.</p>
+              @if (cardText(card, 'text')) {
+                <div class="selected-card__content">
+                  <strong>Полный текст</strong>
+                  <p>{{ cardText(card, 'text') }}</p>
+                </div>
               }
             </div>
-
-            <div class="analytics-chat__conversation">
-              <div class="message-list">
-                @if (chatLoading()) {
-                  <p class="empty-note">Загружаем диалог...</p>
-                } @else if (activeChat()?.messages?.length) {
-                  @for (message of activeChat()!.messages; track trackById($index, message)) {
-                    <article
-                      class="message-bubble"
-                      [class.message-bubble--user]="message.role === 'USER'"
-                    >
-                      <div class="message-bubble__meta">
-                        <strong>{{ message.role === 'USER' ? 'Вы' : 'Ассистент' }}</strong>
-                        <span>{{ message.createdAt | date: 'd MMM, HH:mm' }}</span>
-                      </div>
-                      <p>{{ message.content }}</p>
-                    </article>
-                  }
-                } @else {
-                  <p class="empty-note">Задайте вопрос по проектам, тратам, событиям или попросите создать новый проект.</p>
-                }
-              </div>
-
-              <form class="analytics-chat__form" [formGroup]="messageForm" (ngSubmit)="submitMessage()">
-                <textarea
-                  formControlName="message"
-                  placeholder="Например: подготовь отчет по расходам за месяц и предложи новый проект"
-                ></textarea>
-                <div class="analytics-chat__form-actions">
-                  <button class="button button--primary" type="submit" [disabled]="sending()">
-                    {{ sending() ? 'Отправляем...' : 'Отправить' }}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          } @else {
+            <p class="empty-note">Выберите сохраненный результат слева или сохраните ответ ассистента из чата.</p>
+          }
         </article>
-      </section>
+      </aside>
     </section>
   </main>
 }
+
+<app-modal-window
+  [opened]="saveProjectDialogOpen()"
+  title="Сохранить результат как проект"
+  description="Введите название проекта. При необходимости можно сразу приложить файл результата."
+  (close)="closeSaveProjectDialog()"
+>
+  <form [formGroup]="saveProjectForm" (ngSubmit)="submitSaveProject()">
+    <div class="form-field">
+      <label for="ai-project-name">Название проекта</label>
+      <input
+        id="ai-project-name"
+        type="text"
+        formControlName="name"
+        [class.input-invalid]="saveProjectFieldInvalid()"
+      />
+      @if (saveProjectFieldError(); as error) {
+        <small>{{ error }}</small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label for="ai-project-file">Файл результата</label>
+      <input id="ai-project-file" type="file" (change)="updateSaveProjectFile($event)" />
+      <small>Файл будет прикреплен к созданному проекту как итоговый артефакт.</small>
+    </div>
+
+    <div class="save-project__actions">
+      <button class="button button--ghost" type="button" (click)="closeSaveProjectDialog()">Отмена</button>
+      <button class="button button--primary" type="submit" [disabled]="savingProject()">
+        {{ savingProject() ? 'Сохраняем...' : 'Сохранить проект' }}
+      </button>
+    </div>
+  </form>
+</app-modal-window>

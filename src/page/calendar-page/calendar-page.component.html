@@ -195,27 +195,45 @@
       <form [formGroup]="form" (ngSubmit)="submitDialog()">
         <div class="form-field">
           <label for="calendar-event-name">Название события</label>
-          <input id="calendar-event-name" type="text" formControlName="name" />
+          <input
+            id="calendar-event-name"
+            type="text"
+            formControlName="name"
+            [class.input-invalid]="fieldInvalid('name')"
+          />
+          @if (fieldError('name'); as error) {
+            <small>{{ error }}</small>
+          }
         </div>
 
         <div class="calendar-form__grid">
           <div class="form-field">
             <label for="calendar-event-type">Тип</label>
-            <select id="calendar-event-type" formControlName="type">
+            <select id="calendar-event-type" formControlName="type" [class.input-invalid]="fieldInvalid('type')">
               <option value="WEBINAR">Вебинар</option>
               <option value="MEETING">Встреча</option>
               <option value="CAMPAIGN">Кампания</option>
             </select>
+            @if (fieldError('type'); as error) {
+              <small>{{ error }}</small>
+            }
           </div>
 
           @if (responsibles().length) {
             <div class="form-field">
               <label for="calendar-event-responsible">Ответственный</label>
-              <select id="calendar-event-responsible" formControlName="responsibleId">
+              <select
+                id="calendar-event-responsible"
+                formControlName="responsibleId"
+                [class.input-invalid]="fieldInvalid('responsibleId')"
+              >
                 @for (user of responsibles(); track user.id) {
                   <option [value]="user.id">{{ user.lastName }} {{ user.firstName }}</option>
                 }
               </select>
+              @if (fieldError('responsibleId'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
           }
         </div>
@@ -223,12 +241,28 @@
         <div class="calendar-form__grid">
           <div class="form-field">
             <label for="calendar-event-start">Начало</label>
-            <input id="calendar-event-start" type="datetime-local" formControlName="startDate" />
+            <input
+              id="calendar-event-start"
+              type="datetime-local"
+              formControlName="startDate"
+              [class.input-invalid]="fieldInvalid('startDate') || dateRangeInvalid()"
+            />
+            @if (fieldError('startDate'); as error) {
+              <small>{{ error }}</small>
+            }
           </div>
 
           <div class="form-field">
             <label for="calendar-event-end">Окончание</label>
-            <input id="calendar-event-end" type="datetime-local" formControlName="endDate" />
+            <input
+              id="calendar-event-end"
+              type="datetime-local"
+              formControlName="endDate"
+              [class.input-invalid]="dateRangeInvalid()"
+            />
+            @if (endDateError(); as error) {
+              <small>{{ error }}</small>
+            }
           </div>
         </div>
 
@@ -239,12 +273,15 @@
 
         @if (responsibles().length) {
           <div class="form-field">
-            <label for="calendar-event-participants">Участники</label>
-            <select id="calendar-event-participants" class="form-select-multiple" formControlName="participants" multiple size="8">
-              @for (user of responsibles(); track user.id) {
-                <option [value]="user.id">{{ user.lastName }} {{ user.firstName }} · {{ user.role }}</option>
-              }
-            </select>
+            <label>Участники</label>
+            <app-participant-selector
+              [options]="participantOptions()"
+              [selectedIds]="form.controls.participants.value"
+              [multiple]="true"
+              searchPlaceholder="Найти участника по ФИО, логину или email"
+              noResultsText="Подходящие пользователи не найдены."
+              (selectionChange)="updateParticipants($event)"
+            />
             <small>Можно выбрать сразу нескольких пользователей системы.</small>
           </div>
         }

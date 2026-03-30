@@ -117,27 +117,45 @@
       <form [formGroup]="form" (ngSubmit)="submit()">
         <div class="form-field">
           <label for="event-name">Название мероприятия</label>
-          <input id="event-name" type="text" formControlName="name" />
+          <input
+            id="event-name"
+            type="text"
+            formControlName="name"
+            [class.input-invalid]="fieldInvalid('name')"
+          />
+          @if (fieldError('name'); as error) {
+            <small>{{ error }}</small>
+          }
         </div>
 
         <div class="event-management__form-grid">
           <div class="form-field">
             <label for="event-type">Тип</label>
-            <select id="event-type" formControlName="type">
+            <select id="event-type" formControlName="type" [class.input-invalid]="fieldInvalid('type')">
               <option value="WEBINAR">Вебинар</option>
               <option value="MEETING">Встреча</option>
               <option value="CAMPAIGN">Кампания</option>
             </select>
+            @if (fieldError('type'); as error) {
+              <small>{{ error }}</small>
+            }
           </div>
 
           @if (hasResponsibleOptions()) {
             <div class="form-field">
               <label for="event-responsible">Ответственный</label>
-              <select id="event-responsible" formControlName="responsibleId">
+              <select
+                id="event-responsible"
+                formControlName="responsibleId"
+                [class.input-invalid]="fieldInvalid('responsibleId')"
+              >
                 @for (user of responsibles(); track user.id) {
                   <option [value]="user.id">{{ user.lastName }} {{ user.firstName }}</option>
                 }
               </select>
+              @if (fieldError('responsibleId'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
           }
         </div>
@@ -145,12 +163,28 @@
         <div class="event-management__form-grid">
           <div class="form-field">
             <label for="event-start-date">Начало</label>
-            <input id="event-start-date" type="datetime-local" formControlName="startDate" />
+            <input
+              id="event-start-date"
+              type="datetime-local"
+              formControlName="startDate"
+              [class.input-invalid]="fieldInvalid('startDate') || dateRangeInvalid()"
+            />
+            @if (fieldError('startDate'); as error) {
+              <small>{{ error }}</small>
+            }
           </div>
 
           <div class="form-field">
             <label for="event-end-date">Окончание</label>
-            <input id="event-end-date" type="datetime-local" formControlName="endDate" />
+            <input
+              id="event-end-date"
+              type="datetime-local"
+              formControlName="endDate"
+              [class.input-invalid]="dateRangeInvalid()"
+            />
+            @if (endDateError(); as error) {
+              <small>{{ error }}</small>
+            }
           </div>
         </div>
 
@@ -161,12 +195,15 @@
 
         @if (responsibles().length) {
           <div class="form-field">
-            <label for="event-participants">Участники</label>
-            <select id="event-participants" class="form-select-multiple" formControlName="participants" multiple size="8">
-              @for (user of responsibles(); track user.id) {
-                <option [value]="user.id">{{ user.lastName }} {{ user.firstName }} · {{ user.role }}</option>
-              }
-            </select>
+            <label>Участники</label>
+            <app-participant-selector
+              [options]="participantOptions()"
+              [selectedIds]="form.controls.participants.value"
+              [multiple]="true"
+              searchPlaceholder="Найти участника по ФИО, логину или email"
+              noResultsText="Подходящие пользователи не найдены."
+              (selectionChange)="updateParticipants($event)"
+            />
             <small>Можно выбрать сразу нескольких пользователей системы.</small>
           </div>
         }

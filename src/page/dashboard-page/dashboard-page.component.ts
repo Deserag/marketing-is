@@ -5,11 +5,11 @@ import { RouterLink } from '@angular/router';
 import { forkJoin, of, take } from 'rxjs';
 import { AuthService } from '../../entity/auth/auth.service';
 import { CompaniesService } from '../../entity/company/company.service';
-import { PaginatedResponse } from '../../entity/common/pagination.models';
 import { EventsService } from '../../entity/event/event.service';
 import { ExpenseListItem } from '../../entity/expense/expense.models';
 import { ExpensesService } from '../../entity/expense/expense.service';
 import { ProjectsService } from '../../entity/project/project.service';
+import { formatUserFullName } from '../../entity/user/user.helpers';
 import {
   MetricCardComponent,
   MetricTone,
@@ -126,6 +126,15 @@ export class DashboardPageComponent {
       });
     }
 
+    if (this.access().canViewFinance) {
+      items.push({
+        label: 'Расходы',
+        title: 'Открыть расходы',
+        description: 'Регистрация расходов и сводный финансовый отчет.',
+        route: '/expenses',
+      });
+    }
+
     if (this.access().canAccessAdminPanel) {
       items.push({
         label: 'Админка',
@@ -157,14 +166,18 @@ export class DashboardPageComponent {
   }
 
   protected approvalLabel(expense: ExpenseListItem): string {
+    if (expense.approved === null) {
+      return 'Без согласования';
+    }
+
     return expense.approved ? 'Подтвержден' : 'Ожидает подтверждения';
   }
 
   protected expenseAmount(expense: ExpenseListItem): string {
-    const amount = Number(expense.price);
+    const amount = Number(expense.amount);
 
     if (!Number.isFinite(amount)) {
-      return `${expense.price} ${expense.currency}`;
+      return `${expense.amount} ${expense.currency}`;
     }
 
     return new Intl.NumberFormat('ru-RU', {
@@ -172,6 +185,10 @@ export class DashboardPageComponent {
       currency: expense.currency,
       maximumFractionDigits: 0,
     }).format(amount);
+  }
+
+  protected expenseSource(expense: ExpenseListItem): string {
+    return `${expense.source.name} · ${formatUserFullName(expense.initiator)}`;
   }
 
   protected trackById(_index: number, item: { id: string }): string {
@@ -216,12 +233,20 @@ export class DashboardPageComponent {
       });
   }
 
-  private emptyPage<T>(): PaginatedResponse<T> {
+  private emptyPage<T>() {
     return {
       rows: [],
       totalCount: 0,
       totalPages: 0,
       currentPage: 1,
+      summary: {
+        totalBySource: {
+          projects: 0,
+          events: 0,
+        },
+        totalByCurrency: [],
+        pendingApproval: 0,
+      },
     };
   }
 

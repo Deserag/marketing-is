@@ -167,7 +167,7 @@
                 <article class="expense-list__item">
                   <div class="expense-list__main">
                     <h3>{{ expense.name }}</h3>
-                    <p>{{ expense.event.name }} · {{ expense.initiator.firstName }} {{ expense.initiator.lastName }}</p>
+                    <p>{{ expenseSource(expense) }}</p>
                   </div>
 
                   <div class="expense-list__meta">

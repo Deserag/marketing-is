@@ -20,13 +20,15 @@ import {
   ProjectSprint,
 } from '../../entity/project/project.models';
 import { ProjectsService } from '../../entity/project/project.service';
+import { buildUserSearchTerms, formatUserFullName } from '../../entity/user/user.helpers';
 import { UserListItem } from '../../entity/user/user.models';
 import { UsersService } from '../../entity/user/user.service';
 import { MetricCardComponent } from '../../widget/metric-card/metric-card.component';
+import { ParticipantSelectorComponent } from '../../widget/participant-selector/participant-selector.component';
 
 @Component({
   selector: 'app-project-details-page',
-  imports: [DatePipe, ReactiveFormsModule, MetricCardComponent],
+  imports: [DatePipe, ReactiveFormsModule, MetricCardComponent, ParticipantSelectorComponent],
   templateUrl: './project-details-page.component.html',
   styleUrl: './project-details-page.component.css',
 })
@@ -58,6 +60,7 @@ export class ProjectDetailsPageComponent {
   protected readonly selectedParticipantId = signal<string | null>(null);
   protected readonly selectedSprintId = signal<string | null>(null);
   protected readonly selectedExpenseId = signal<string | null>(null);
+  protected readonly sprintDateRangeInvalid = signal(false);
   protected readonly currentUserId = computed(
     () => this.authService.profile()?.id ?? this.authService.session()?.sub ?? null,
   );
@@ -89,6 +92,13 @@ export class ProjectDetailsPageComponent {
 
     return this.userOptions().filter((user) => !takenUserIds.has(user.id));
   });
+  protected readonly participantOptions = computed(() =>
+    this.availableUserOptions().map((user) => ({
+      id: user.id,
+      label: formatUserFullName(user),
+      searchTerms: buildUserSearchTerms(user),
+    })),
+  );
 
   protected readonly participantForm = this.formBuilder.group({
     userIds: this.formBuilder.control<string[]>([]),
@@ -165,7 +175,7 @@ export class ProjectDetailsPageComponent {
   }
 
   protected fullName(user: ProjectParticipant['user'] | ProjectExpense['initiator']): string {
-    return [user.lastName, user.firstName, user.middleName].filter(Boolean).join(' ');
+    return formatUserFullName(user);
   }
 
   protected sprintDateLabel(startDate: string, endDate?: string | null): string {
@@ -197,6 +207,101 @@ export class ProjectDetailsPageComponent {
 
   protected trackById(_index: number, item: { id: string }): string {
     return item.id;
+  }
+
+  protected updateParticipantSelection(userIds: string[]): void {
+    this.participantForm.controls.userIds.setValue(userIds);
+    this.participantForm.controls.userIds.markAsDirty();
+  }
+
+  protected participantUsersInvalid(): boolean {
+    const control = this.participantForm.controls.userIds;
+    return control.value.length === 0 && (control.dirty || control.touched);
+  }
+
+  protected participantRoleInvalid(): boolean {
+    const control = this.participantForm.controls.role;
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  protected participantUsersError(): string | null {
+    if (!this.participantUsersInvalid()) {
+      return null;
+    }
+
+    return this.selectedParticipantId()
+      ? 'Выберите пользователя проекта.'
+      : 'Выберите хотя бы одного пользователя.';
+  }
+
+  protected participantRoleError(): string | null {
+    return this.participantRoleInvalid() ? 'Выберите роль участника проекта.' : null;
+  }
+
+  protected sprintFieldInvalid(fieldName: keyof typeof this.sprintForm.controls): boolean {
+    const control = this.sprintForm.controls[fieldName];
+
+    return (
+      control.invalid && (control.dirty || control.touched)
+    ) || (fieldName === 'endDate' && this.sprintDateRangeInvalid());
+  }
+
+  protected sprintFieldError(fieldName: keyof typeof this.sprintForm.controls): string | null {
+    const control = this.sprintForm.controls[fieldName];
+
+    if (fieldName === 'endDate' && this.sprintDateRangeInvalid()) {
+      return 'Дата окончания не может быть раньше даты начала.';
+    }
+
+    if (!this.sprintFieldInvalid(fieldName)) {
+      return null;
+    }
+
+    if (control.errors?.['required']) {
+      const messages: Partial<Record<keyof typeof this.sprintForm.controls, string>> = {
+        taskText: 'Введите текст задачи.',
+        startDate: 'Укажите дату начала.',
+      };
+
+      return messages[fieldName] ?? 'Поле обязательно для заполнения.';
+    }
+
+    if (control.errors?.['maxlength']) {
+      return 'Описание задачи не должно превышать 2000 символов.';
+    }
+
+    return 'Проверьте корректность заполнения поля.';
+  }
+
+  protected expenseFieldInvalid(fieldName: keyof typeof this.expenseForm.controls): boolean {
+    const control = this.expenseForm.controls[fieldName];
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  protected expenseFieldError(fieldName: keyof typeof this.expenseForm.controls): string | null {
+    const control = this.expenseForm.controls[fieldName];
+
+    if (!this.expenseFieldInvalid(fieldName)) {
+      return null;
+    }
+
+    if (control.errors?.['required']) {
+      const messages: Partial<Record<keyof typeof this.expenseForm.controls, string>> = {
+        name: 'Введите название расхода.',
+        type: 'Выберите категорию расхода.',
+        amount: 'Укажите сумму расхода.',
+        currency: 'Выберите валюту.',
+        spentAt: 'Укажите дату расхода.',
+      };
+
+      return messages[fieldName] ?? 'Поле обязательно для заполнения.';
+    }
+
+    if (control.errors?.['min']) {
+      return 'Сумма расхода не может быть отрицательной.';
+    }
+
+    return 'Проверьте корректность заполнения поля.';
   }
 
   protected editParticipant(participant: ProjectParticipant): void {
@@ -310,6 +415,7 @@ export class ProjectDetailsPageComponent {
 
   protected editSprint(sprint: ProjectSprint): void {
     this.selectedSprintId.set(sprint.id);
+    this.sprintDateRangeInvalid.set(false);
     this.sprintForm.reset({
       taskText: sprint.taskText,
       startDate: this.toDateTimeLocalValue(sprint.startDate),
@@ -324,6 +430,7 @@ export class ProjectDetailsPageComponent {
     const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
 
     this.selectedSprintId.set(null);
+    this.sprintDateRangeInvalid.set(false);
     this.sprintForm.reset({
       taskText: '',
       startDate: this.toDateTimeLocalValue(startDate.toISOString()),
@@ -340,6 +447,15 @@ export class ProjectDetailsPageComponent {
     }
 
     const raw = this.sprintForm.getRawValue();
+
+    this.sprintDateRangeInvalid.set(false);
+
+    if (raw.endDate && new Date(raw.endDate).getTime() < new Date(raw.startDate).getTime()) {
+      this.sprintDateRangeInvalid.set(true);
+      this.sprintForm.controls.endDate.markAsTouched();
+      return;
+    }
+
     const selectedSprintId = this.selectedSprintId();
     this.sprintBusy.set(true);
     this.sprintError.set(null);

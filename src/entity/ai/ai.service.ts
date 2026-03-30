@@ -8,6 +8,7 @@ import {
   AiChatSummary,
   AiOverview,
   CreateAiChatPayload,
+  SaveAiMessagePayload,
   SendAiMessagePayload,
 } from './ai.models';
 
@@ -39,6 +40,17 @@ export class AiService {
   sendMessage(chatId: string, payload: SendAiMessagePayload): Observable<AiChatDetail> {
     return this.http.post<AiChatDetail>(
       `${this.apiBaseUrl}/ai/chats/${chatId}/messages`,
+      payload,
+    );
+  }
+
+  saveMessage(
+    chatId: string,
+    messageId: string,
+    payload: SaveAiMessagePayload = {},
+  ): Observable<AiCard> {
+    return this.http.post<AiCard>(
+      `${this.apiBaseUrl}/ai/chats/${chatId}/messages/${messageId}/save`,
       payload,
     );
   }

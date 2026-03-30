@@ -96,33 +96,42 @@
         @if (canManageProject()) {
           <form class="details-form" [formGroup]="participantForm" (ngSubmit)="submitParticipant()">
             <div class="form-field details-form__wide">
-              <label for="project-participant-users">
+              <label>
                 {{ selectedParticipantId() ? 'Пользователь' : 'Пользователи' }}
               </label>
-              <select
-                id="project-participant-users"
-                class="form-select-multiple"
-                formControlName="userIds"
-                multiple
-                [attr.size]="selectedParticipantId() ? 5 : 8"
-              >
-                @for (user of availableUserOptions(); track user.id) {
-                  <option [value]="user.id">{{ user.lastName }} {{ user.firstName }} · {{ user.role }}</option>
-                }
-              </select>
+              <app-participant-selector
+                [options]="participantOptions()"
+                [selectedIds]="participantForm.controls.userIds.value"
+                [multiple]="!selectedParticipantId()"
+                [listSize]="selectedParticipantId() ? 5 : 8"
+                [invalid]="participantUsersInvalid()"
+                searchPlaceholder="Найти участника по ФИО, логину или email"
+                noResultsText="Подходящие пользователи не найдены."
+                (selectionChange)="updateParticipantSelection($event)"
+              />
               @if (!selectedParticipantId()) {
                 <small>Можно выбрать сразу нескольких пользователей.</small>
+              }
+              @if (participantUsersError(); as error) {
+                <small>{{ error }}</small>
               }
             </div>
 
             <div class="form-field">
               <label for="project-participant-role">Роль в проекте</label>
-              <select id="project-participant-role" formControlName="role">
+              <select
+                id="project-participant-role"
+                formControlName="role"
+                [class.input-invalid]="participantRoleInvalid()"
+              >
                 <option value="OWNER">OWNER</option>
                 <option value="MANAGER">MANAGER</option>
                 <option value="LEAD">LEAD</option>
                 <option value="MEMBER">MEMBER</option>
               </select>
+              @if (participantRoleError(); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="details-form__actions details-form__actions--wide">
@@ -184,17 +193,40 @@
           <form class="details-form details-form--sprint" [formGroup]="sprintForm" (ngSubmit)="submitSprint()">
             <div class="form-field details-form__wide">
               <label for="project-sprint-task">Текст задачи</label>
-              <textarea id="project-sprint-task" formControlName="taskText"></textarea>
+              <textarea
+                id="project-sprint-task"
+                formControlName="taskText"
+                [class.input-invalid]="sprintFieldInvalid('taskText')"
+              ></textarea>
+              @if (sprintFieldError('taskText'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="form-field">
               <label for="project-sprint-start">Начало</label>
-              <input id="project-sprint-start" type="datetime-local" formControlName="startDate" />
+              <input
+                id="project-sprint-start"
+                type="datetime-local"
+                formControlName="startDate"
+                [class.input-invalid]="sprintFieldInvalid('startDate') || sprintDateRangeInvalid()"
+              />
+              @if (sprintFieldError('startDate'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="form-field">
               <label for="project-sprint-end">Окончание</label>
-              <input id="project-sprint-end" type="datetime-local" formControlName="endDate" />
+              <input
+                id="project-sprint-end"
+                type="datetime-local"
+                formControlName="endDate"
+                [class.input-invalid]="sprintFieldInvalid('endDate')"
+              />
+              @if (sprintFieldError('endDate'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="details-form__actions details-form__actions--wide">
@@ -278,7 +310,15 @@
           <form class="details-form details-form--expense" [formGroup]="expenseForm" (ngSubmit)="submitExpense()">
             <div class="form-field details-form__wide">
               <label for="project-expense-name">Название расхода</label>
-              <input id="project-expense-name" type="text" formControlName="name" />
+              <input
+                id="project-expense-name"
+                type="text"
+                formControlName="name"
+                [class.input-invalid]="expenseFieldInvalid('name')"
+              />
+              @if (expenseFieldError('name'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="form-field details-form__wide">
@@ -288,31 +328,63 @@
 
             <div class="form-field">
               <label for="project-expense-type">Категория</label>
-              <select id="project-expense-type" formControlName="type">
+              <select
+                id="project-expense-type"
+                formControlName="type"
+                [class.input-invalid]="expenseFieldInvalid('type')"
+              >
                 <option value="ADVERTISING">Реклама</option>
                 <option value="RENT">Аренда</option>
                 <option value="CONTENT">Контент</option>
                 <option value="OTHER">Другое</option>
               </select>
+              @if (expenseFieldError('type'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="form-field">
               <label for="project-expense-amount">Сумма</label>
-              <input id="project-expense-amount" type="number" min="0" step="0.01" formControlName="amount" />
+              <input
+                id="project-expense-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                formControlName="amount"
+                [class.input-invalid]="expenseFieldInvalid('amount')"
+              />
+              @if (expenseFieldError('amount'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="form-field">
               <label for="project-expense-currency">Валюта</label>
-              <select id="project-expense-currency" formControlName="currency">
+              <select
+                id="project-expense-currency"
+                formControlName="currency"
+                [class.input-invalid]="expenseFieldInvalid('currency')"
+              >
                 <option value="RUB">RUB</option>
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
               </select>
+              @if (expenseFieldError('currency'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="form-field">
               <label for="project-expense-date">Дата расхода</label>
-              <input id="project-expense-date" type="datetime-local" formControlName="spentAt" />
+              <input
+                id="project-expense-date"
+                type="datetime-local"
+                formControlName="spentAt"
+                [class.input-invalid]="expenseFieldInvalid('spentAt')"
+              />
+              @if (expenseFieldError('spentAt'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="details-form__actions details-form__actions--wide">

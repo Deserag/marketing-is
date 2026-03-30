@@ -1,0 +1,285 @@
+@if (loading()) {
+  <div class="page-state">
+    <div class="panel page-state__card">
+      <span class="eyebrow">Расходы</span>
+      <h2>Загружаем финансовый модуль</h2>
+      <p>Подтягиваем проекты, мероприятия и сводный отчет по расходам.</p>
+    </div>
+  </div>
+} @else if (errorMessage() && !pageData()) {
+  <div class="page-state">
+    <div class="panel page-state__card">
+      <span class="eyebrow">Ошибка</span>
+      <h2>Раздел расходов временно недоступен</h2>
+      <p>{{ errorMessage() }}</p>
+      <button class="button button--primary" type="button" (click)="reload()">Повторить</button>
+    </div>
+  </div>
+} @else {
+  <main class="expenses-page">
+    <header class="panel expenses-hero">
+      <div>
+        <span class="eyebrow">Финансы</span>
+        <h1>Расходы и отчеты</h1>
+        <p>
+          Здесь можно зарегистрировать новый расход и сразу увидеть общую картину по проектам и
+          мероприятиям. Инициатором автоматически фиксируется текущий пользователь.
+        </p>
+      </div>
+
+      <div class="expenses-hero__actions">
+        <span class="chip chip--muted">Инициатор: {{ currentUserName() }}</span>
+        <button class="button button--ghost" type="button" (click)="reload()" [disabled]="supportLoading()">
+          {{ supportLoading() ? 'Обновляем...' : 'Обновить данные' }}
+        </button>
+      </div>
+    </header>
+
+    @if (successMessage()) {
+      <div class="form-message form-message--success">{{ successMessage() }}</div>
+    }
+
+    @if (errorMessage()) {
+      <div class="form-message form-message--error">{{ errorMessage() }}</div>
+    }
+
+    <section class="expenses-metrics">
+      @for (card of summaryCards(); track card.label) {
+        <app-metric-card
+          [label]="card.label"
+          [value]="card.value"
+          [hint]="card.hint"
+          [tone]="card.tone"
+        />
+      }
+    </section>
+
+    <section class="expenses-layout">
+      <article class="panel expenses-card">
+        <div class="expenses-card__header">
+          <div>
+            <span class="eyebrow">Добавление</span>
+            <h2>Новый расход</h2>
+          </div>
+        </div>
+
+        <form class="expenses-form" [formGroup]="form" (ngSubmit)="submitExpense()">
+          <div class="expenses-form__grid">
+            <div class="form-field">
+              <label for="expense-source-type">Источник расхода</label>
+              <select
+                id="expense-source-type"
+                formControlName="sourceType"
+                [class.input-invalid]="fieldInvalid('sourceType')"
+              >
+                <option value="PROJECT">Проект</option>
+                <option value="EVENT">Мероприятие</option>
+              </select>
+              @if (fieldError('sourceType'); as error) {
+                <small>{{ error }}</small>
+              }
+            </div>
+
+            <div class="form-field">
+              <label for="expense-source-id">
+                {{ form.controls.sourceType.value === 'PROJECT' ? 'Проект' : 'Мероприятие' }}
+              </label>
+              <select
+                id="expense-source-id"
+                formControlName="sourceId"
+                [class.input-invalid]="fieldInvalid('sourceId')"
+              >
+                <option value="">Выберите источник</option>
+                @for (source of sourceOptions(); track source.id) {
+                  <option [value]="source.id">{{ sourceOptionLabel(source) }}</option>
+                }
+              </select>
+              @if (fieldError('sourceId'); as error) {
+                <small>{{ error }}</small>
+              }
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="expense-name">Название расхода</label>
+            <input
+              id="expense-name"
+              type="text"
+              formControlName="name"
+              [class.input-invalid]="fieldInvalid('name')"
+            />
+            @if (fieldError('name'); as error) {
+              <small>{{ error }}</small>
+            }
+          </div>
+
+          @if (sourceSupportsDetailedFields()) {
+            <div class="form-field">
+              <label for="expense-description">Описание</label>
+              <textarea id="expense-description" formControlName="description"></textarea>
+            </div>
+          } @else {
+            <div class="expenses-form__hint">
+              <strong>Для расходов мероприятий</strong>
+              <span>Описание и дата в отчете будут зафиксированы автоматически по моменту создания заявки.</span>
+            </div>
+          }
+
+          <div class="expenses-form__grid">
+            <div class="form-field">
+              <label for="expense-type">Категория</label>
+              <select id="expense-type" formControlName="type" [class.input-invalid]="fieldInvalid('type')">
+                <option value="ADVERTISING">Реклама</option>
+                <option value="RENT">Аренда</option>
+                <option value="CONTENT">Контент</option>
+                <option value="OTHER">Другое</option>
+              </select>
+              @if (fieldError('type'); as error) {
+                <small>{{ error }}</small>
+              }
+            </div>
+
+            <div class="form-field">
+              <label for="expense-amount">Сумма</label>
+              <input
+                id="expense-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                formControlName="amount"
+                [class.input-invalid]="fieldInvalid('amount')"
+              />
+              @if (fieldError('amount'); as error) {
+                <small>{{ error }}</small>
+              }
+            </div>
+          </div>
+
+          <div class="expenses-form__grid">
+            <div class="form-field">
+              <label for="expense-currency">Валюта</label>
+              <select
+                id="expense-currency"
+                formControlName="currency"
+                [class.input-invalid]="fieldInvalid('currency')"
+              >
+                <option value="RUB">RUB</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+              @if (fieldError('currency'); as error) {
+                <small>{{ error }}</small>
+              }
+            </div>
+
+            @if (sourceSupportsDetailedFields()) {
+              <div class="form-field">
+                <label for="expense-spent-at">Дата расхода</label>
+                <input
+                  id="expense-spent-at"
+                  type="datetime-local"
+                  formControlName="spentAt"
+                  [class.input-invalid]="fieldInvalid('spentAt')"
+                />
+                @if (fieldError('spentAt'); as error) {
+                  <small>{{ error }}</small>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="expenses-form__actions">
+            <button class="button button--primary" type="submit" [disabled]="submitting()">
+              <app-ui-icon name="plus" />
+              <span>{{ submitting() ? 'Сохраняем...' : 'Добавить расход' }}</span>
+            </button>
+          </div>
+        </form>
+      </article>
+
+      <article class="panel expenses-card expenses-card--wide">
+        <div class="expenses-card__header">
+          <div>
+            <span class="eyebrow">Отчет</span>
+            <h2>Сводка расходов</h2>
+          </div>
+
+          @if (pageData(); as data) {
+            <strong>{{ data.totalCount }}</strong>
+          }
+        </div>
+
+        @if (pageData()?.summary?.totalByCurrency?.length) {
+          <div class="expenses-currency-summary">
+            @for (row of pageData()!.summary.totalByCurrency; track row.currency) {
+              <span class="chip chip--muted">{{ row.total }} {{ row.currency }} · {{ row.count }}</span>
+            }
+          </div>
+        }
+
+        <div class="expenses-toolbar">
+          <input
+            [formControl]="searchControl"
+            type="text"
+            placeholder="Поиск по расходу, проекту, мероприятию или инициатору"
+          />
+          <select [formControl]="filterSourceType">
+            <option value="ALL">Все источники</option>
+            <option value="PROJECT">Только проекты</option>
+            <option value="EVENT">Только мероприятия</option>
+          </select>
+          <button class="button button--ghost" type="button" (click)="applyFilters()">Применить</button>
+        </div>
+
+        @if (pageData()?.rows?.length) {
+          <div class="expense-report-list">
+            @for (expense of pageData()!.rows; track trackById($index, expense)) {
+              <article class="expense-report-item">
+                <div class="expense-report-item__main">
+                  <div class="expense-report-item__head">
+                    <div>
+                      <span class="chip chip--muted">{{ expenseSourceBadge(expense) }}</span>
+                      <h3>{{ expense.name }}</h3>
+                    </div>
+                    <strong>{{ formatAmount(expense) }}</strong>
+                  </div>
+
+                  <p>{{ expense.description || 'Описание расхода не заполнено.' }}</p>
+
+                  <div class="expense-report-item__meta">
+                    <a [routerLink]="expense.source.route">{{ expense.source.name }}</a>
+                    <span>{{ expense.type }}</span>
+                    <span>{{ initiatorName(expense) }}</span>
+                    <span>{{ expense.spentAt | date: 'd MMM y, HH:mm' }}</span>
+                  </div>
+                </div>
+
+                <div class="expense-report-item__side">
+                  <span
+                    class="status-pill"
+                    [class.status-pill--approved]="expense.approved === true"
+                  >
+                    {{ approvalLabel(expense) }}
+                  </span>
+                </div>
+              </article>
+            }
+          </div>
+
+          <app-pagination-controls
+            [currentPage]="pageData()!.currentPage"
+            [totalPages]="pageData()!.totalPages"
+            [totalCount]="pageData()!.totalCount"
+            [pageSize]="pageSize()"
+            [pageSizeOptions]="pageSizeOptions"
+            itemLabel="расходов"
+            (pageChange)="changePage($event)"
+            (pageSizeChange)="changePageSize($event)"
+          />
+        } @else {
+          <p class="empty-note">По текущему фильтру расходы не найдены.</p>
+        }
+      </article>
+    </section>
+  </main>
+}

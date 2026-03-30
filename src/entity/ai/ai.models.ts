@@ -85,3 +85,8 @@ export interface CreateAiChatPayload {
 export interface SendAiMessagePayload {
   message: string;
 }
+
+export interface SaveAiMessagePayload {
+  name?: string;
+  kind?: 'project' | 'report' | 'note';
+}

@@ -20,9 +20,11 @@ import {
   type EventListQuery,
 } from '../../entity/event/event.models';
 import { EventsService } from '../../entity/event/event.service';
+import { buildUserSearchTerms, formatUserFullName } from '../../entity/user/user.helpers';
 import { UserListItem } from '../../entity/user/user.models';
 import { UsersService } from '../../entity/user/user.service';
 import { ModalWindowComponent } from '../modal-window/modal-window.component';
+import { ParticipantSelectorComponent } from '../participant-selector/participant-selector.component';
 import { PaginationControlsComponent } from '../pagination-controls/pagination-controls.component';
 import { UiIconComponent } from '../ui-icon/ui-icon.component';
 
@@ -34,6 +36,7 @@ type EventFilter = 'ALL' | EventType;
     DatePipe,
     ReactiveFormsModule,
     ModalWindowComponent,
+    ParticipantSelectorComponent,
     PaginationControlsComponent,
     UiIconComponent,
   ],
@@ -63,6 +66,7 @@ export class EventManagementComponent {
   protected readonly submitting = signal(false);
   protected readonly dialogOpen = signal(false);
   protected readonly dialogLoading = signal(false);
+  protected readonly dateRangeInvalid = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
   protected readonly isEditing = computed(() => !!this.selectedEventId());
@@ -71,6 +75,13 @@ export class EventManagementComponent {
   );
   protected readonly currentUserId = computed(
     () => this.auth.profile()?.id ?? this.auth.session()?.sub ?? null,
+  );
+  protected readonly participantOptions = computed(() =>
+    this.responsibles().map((user) => ({
+      id: user.id,
+      label: formatUserFullName(user),
+      searchTerms: buildUserSearchTerms(user),
+    })),
   );
 
   protected readonly form = this.formBuilder.group({
@@ -116,6 +127,7 @@ export class EventManagementComponent {
 
     this.resetForCreate(date);
     this.dialogLoading.set(false);
+    this.dateRangeInvalid.set(false);
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.dialogOpen.set(true);
@@ -124,6 +136,7 @@ export class EventManagementComponent {
   protected closeDialog(): void {
     this.dialogOpen.set(false);
     this.dialogLoading.set(false);
+    this.dateRangeInvalid.set(false);
     this.errorMessage.set(null);
     this.resetForCreate();
   }
@@ -136,6 +149,7 @@ export class EventManagementComponent {
     this.selectedEventId.set(event.id);
     this.errorMessage.set(null);
     this.successMessage.set(null);
+    this.dateRangeInvalid.set(false);
     this.dialogLoading.set(true);
     this.dialogOpen.set(true);
 
@@ -173,7 +187,10 @@ export class EventManagementComponent {
     const startDate = this.form.controls.startDate.value;
     const endDate = this.form.controls.endDate.value;
 
+    this.dateRangeInvalid.set(false);
+
     if (endDate && new Date(endDate).getTime() < new Date(startDate).getTime()) {
+      this.dateRangeInvalid.set(true);
       this.errorMessage.set('Дата окончания не может быть раньше даты начала.');
       return;
     }
@@ -302,6 +319,41 @@ export class EventManagementComponent {
 
   protected trackById(_index: number, item: { id: string }): string {
     return item.id;
+  }
+
+  protected updateParticipants(userIds: string[]): void {
+    this.form.controls.participants.setValue(userIds);
+    this.form.controls.participants.markAsDirty();
+  }
+
+  protected fieldInvalid(fieldName: keyof typeof this.form.controls): boolean {
+    const control = this.form.controls[fieldName];
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  protected fieldError(fieldName: keyof typeof this.form.controls): string | null {
+    const control = this.form.controls[fieldName];
+
+    if (!this.fieldInvalid(fieldName)) {
+      return null;
+    }
+
+    if (control.errors?.['required']) {
+      const messages: Partial<Record<keyof typeof this.form.controls, string>> = {
+        name: 'Введите название мероприятия.',
+        type: 'Выберите тип мероприятия.',
+        startDate: 'Укажите дату и время начала.',
+        responsibleId: 'Выберите ответственного.',
+      };
+
+      return messages[fieldName] ?? 'Поле обязательно для заполнения.';
+    }
+
+    return 'Проверьте корректность заполнения поля.';
+  }
+
+  protected endDateError(): string | null {
+    return this.dateRangeInvalid() ? 'Дата окончания не может быть раньше даты начала.' : null;
   }
 
   protected hasResponsibleOptions(): boolean {

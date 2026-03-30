@@ -69,6 +69,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'expenses',
+        canActivate: [financeGuard],
+        loadComponent: () =>
+          import('../page/expenses-page/expenses-page.component').then(
+            (component) => component.ExpensesPageComponent,
+          ),
+      },
+      {
         path: 'calendar',
         loadComponent: () =>
           import('../page/calendar-page/calendar-page.component').then(
@@ -90,6 +98,11 @@ export const routes: Routes = [
       },
       {
         path: 'analytics',
+        pathMatch: 'full',
+        redirectTo: 'ai-chat',
+      },
+      {
+        path: 'ai-chat',
         canActivate: [financeGuard],
         loadComponent: () =>
           import('../page/analytics-page/analytics-page.component').then(

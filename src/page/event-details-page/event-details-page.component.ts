@@ -17,14 +17,22 @@ import {
   EventParticipant,
 } from '../../entity/event/event.models';
 import { EventsService } from '../../entity/event/event.service';
+import { buildUserSearchTerms, formatUserFullName } from '../../entity/user/user.helpers';
 import { UserListItem } from '../../entity/user/user.models';
 import { UsersService } from '../../entity/user/user.service';
 import { MetricCardComponent } from '../../widget/metric-card/metric-card.component';
+import { ParticipantSelectorComponent } from '../../widget/participant-selector/participant-selector.component';
 import { UiIconComponent } from '../../widget/ui-icon/ui-icon.component';
 
 @Component({
   selector: 'app-event-details-page',
-  imports: [DatePipe, ReactiveFormsModule, MetricCardComponent, UiIconComponent],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    MetricCardComponent,
+    ParticipantSelectorComponent,
+    UiIconComponent,
+  ],
   templateUrl: './event-details-page.component.html',
   styleUrl: './event-details-page.component.css',
 })
@@ -80,9 +88,16 @@ export class EventDetailsPageComponent {
 
     return this.userOptions().filter((user) => !activeIds.has(user.id));
   });
+  protected readonly participantOptions = computed(() =>
+    this.availableParticipantOptions().map((user) => ({
+      id: user.id,
+      label: formatUserFullName(user),
+      searchTerms: buildUserSearchTerms(user),
+    })),
+  );
 
   protected readonly participantForm = this.formBuilder.group({
-    userIds: this.formBuilder.control<string[]>([]),
+    userIds: this.formBuilder.control<string[]>([], [Validators.required]),
   });
 
   protected readonly reminderForm = this.formBuilder.group({
@@ -90,15 +105,15 @@ export class EventDetailsPageComponent {
   });
 
   protected readonly metricForm = this.formBuilder.group({
-    leads: [''],
-    sales: [''],
-    revenue: [''],
+    leads: ['', [Validators.min(0)]],
+    sales: ['', [Validators.min(0)]],
+    revenue: ['', [Validators.min(0)]],
   });
 
   protected readonly expenseForm = this.formBuilder.group({
     name: ['', [Validators.required]],
     type: ['OTHER' as 'ADVERTISING' | 'RENT' | 'CONTENT' | 'OTHER', [Validators.required]],
-    price: ['', [Validators.required]],
+    price: ['', [Validators.required, Validators.min(0)]],
     currency: ['RUB' as 'RUB' | 'USD' | 'EUR', [Validators.required]],
   });
 
@@ -142,16 +157,11 @@ export class EventDetailsPageComponent {
   }
 
   protected participantName(participant: EventParticipant): string {
-    const user = participant.user;
-    return [user.lastName, user.firstName, user.middleName].filter(Boolean).join(' ');
+    return formatUserFullName(participant.user);
   }
 
   protected userOptionLabel(user: UserListItem): string {
-    const fullName = [user.lastName, user.firstName, user.middleName]
-      .filter(Boolean)
-      .join(' ');
-
-    return `${fullName} - ${user.role}`;
+    return formatUserFullName(user);
   }
 
   protected dateLabel(startDate: string, endDate?: string | null): string {
@@ -185,11 +195,98 @@ export class EventDetailsPageComponent {
     return item.id;
   }
 
+  protected updateParticipantsSelection(userIds: string[]): void {
+    this.participantForm.controls.userIds.setValue(userIds);
+    this.participantForm.controls.userIds.markAsDirty();
+  }
+
+  protected participantUsersInvalid(): boolean {
+    const control = this.participantForm.controls.userIds;
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  protected participantUsersError(): string | null {
+    return this.participantUsersInvalid() ? 'Выберите хотя бы одного участника.' : null;
+  }
+
+  protected reminderFieldInvalid(): boolean {
+    const control = this.reminderForm.controls.remindBeforeHours;
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  protected reminderFieldError(): string | null {
+    const control = this.reminderForm.controls.remindBeforeHours;
+
+    if (!this.reminderFieldInvalid()) {
+      return null;
+    }
+
+    if (control.errors?.['required']) {
+      return 'Укажите количество часов.';
+    }
+
+    if (control.errors?.['min']) {
+      return 'Напоминание можно поставить минимум за 1 час.';
+    }
+
+    return 'Проверьте корректность заполнения поля.';
+  }
+
+  protected metricFieldInvalid(fieldName: keyof typeof this.metricForm.controls): boolean {
+    const control = this.metricForm.controls[fieldName];
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  protected metricFieldError(fieldName: keyof typeof this.metricForm.controls): string | null {
+    const control = this.metricForm.controls[fieldName];
+
+    if (!this.metricFieldInvalid(fieldName)) {
+      return null;
+    }
+
+    if (control.errors?.['min']) {
+      return 'Значение не может быть отрицательным.';
+    }
+
+    return 'Проверьте корректность заполнения поля.';
+  }
+
+  protected expenseFieldInvalid(fieldName: keyof typeof this.expenseForm.controls): boolean {
+    const control = this.expenseForm.controls[fieldName];
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  protected expenseFieldError(fieldName: keyof typeof this.expenseForm.controls): string | null {
+    const control = this.expenseForm.controls[fieldName];
+
+    if (!this.expenseFieldInvalid(fieldName)) {
+      return null;
+    }
+
+    if (control.errors?.['required']) {
+      const messages: Partial<Record<keyof typeof this.expenseForm.controls, string>> = {
+        name: 'Введите название расхода.',
+        type: 'Выберите тип расхода.',
+        price: 'Укажите сумму расхода.',
+        currency: 'Выберите валюту.',
+      };
+
+      return messages[fieldName] ?? 'Поле обязательно для заполнения.';
+    }
+
+    if (control.errors?.['min']) {
+      return 'Сумма расхода не может быть отрицательной.';
+    }
+
+    return 'Проверьте корректность заполнения поля.';
+  }
+
   protected addParticipants(): void {
     const event = this.event();
     const userIds = this.participantForm.controls.userIds.value;
 
     if (!event || !this.canExtendEvent() || userIds.length === 0) {
+      this.participantForm.markAllAsTouched();
       return;
     }
 
@@ -303,6 +400,11 @@ export class EventDetailsPageComponent {
     const event = this.event();
 
     if (!event || !this.canExtendEvent()) {
+      return;
+    }
+
+    if (this.metricForm.invalid) {
+      this.metricForm.markAllAsTouched();
       return;
     }
 

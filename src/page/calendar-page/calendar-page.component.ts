@@ -18,9 +18,11 @@ import {
   UpdateEventPayload,
 } from '../../entity/event/event.models';
 import { EventsService } from '../../entity/event/event.service';
+import { buildUserSearchTerms, formatUserFullName } from '../../entity/user/user.helpers';
 import { UserListItem } from '../../entity/user/user.models';
 import { UsersService } from '../../entity/user/user.service';
 import { ModalWindowComponent } from '../../widget/modal-window/modal-window.component';
+import { ParticipantSelectorComponent } from '../../widget/participant-selector/participant-selector.component';
 import { UiIconComponent } from '../../widget/ui-icon/ui-icon.component';
 
 type CalendarViewMode = 'all' | 'mine';
@@ -37,7 +39,13 @@ type CalendarDay = {
 
 @Component({
   selector: 'app-calendar-page',
-  imports: [DatePipe, ReactiveFormsModule, ModalWindowComponent, UiIconComponent],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    ModalWindowComponent,
+    ParticipantSelectorComponent,
+    UiIconComponent,
+  ],
   templateUrl: './calendar-page.component.html',
   styleUrl: './calendar-page.component.css',
 })
@@ -63,6 +71,7 @@ export class CalendarPageComponent {
   protected readonly dialogLoading = signal(false);
   protected readonly dialogSubmitting = signal(false);
   protected readonly dialogErrorMessage = signal<string | null>(null);
+  protected readonly dateRangeInvalid = signal(false);
   protected readonly selectedEventId = signal<string | null>(null);
   protected readonly weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   protected readonly currentUserId = computed(
@@ -74,6 +83,13 @@ export class CalendarPageComponent {
   protected readonly isEditing = computed(() => !!this.selectedEventId());
   protected readonly dialogTitle = computed(() =>
     this.isEditing() ? 'Редактирование события' : 'Создание события',
+  );
+  protected readonly participantOptions = computed(() =>
+    this.responsibles().map((user) => ({
+      id: user.id,
+      label: formatUserFullName(user),
+      searchTerms: buildUserSearchTerms(user),
+    })),
   );
 
   protected readonly form = this.formBuilder.group({
@@ -192,6 +208,7 @@ export class CalendarPageComponent {
     this.selectedEventId.set(null);
     this.resetForm(date);
     this.dialogLoading.set(false);
+    this.dateRangeInvalid.set(false);
     this.dialogErrorMessage.set(null);
     this.dialogOpen.set(true);
   }
@@ -202,6 +219,7 @@ export class CalendarPageComponent {
     }
 
     this.selectedEventId.set(event.id);
+    this.dateRangeInvalid.set(false);
     this.dialogErrorMessage.set(null);
     this.dialogLoading.set(true);
     this.dialogOpen.set(true);
@@ -228,6 +246,7 @@ export class CalendarPageComponent {
   protected closeDialog(): void {
     this.dialogOpen.set(false);
     this.dialogLoading.set(false);
+    this.dateRangeInvalid.set(false);
     this.dialogErrorMessage.set(null);
     this.selectedEventId.set(null);
     this.resetForm();
@@ -242,7 +261,10 @@ export class CalendarPageComponent {
     const startDate = this.form.controls.startDate.value;
     const endDate = this.form.controls.endDate.value;
 
+    this.dateRangeInvalid.set(false);
+
     if (endDate && new Date(endDate).getTime() < new Date(startDate).getTime()) {
+      this.dateRangeInvalid.set(true);
       this.dialogErrorMessage.set('Дата окончания не может быть раньше даты начала.');
       return;
     }
@@ -347,6 +369,41 @@ export class CalendarPageComponent {
 
   protected trackById(_index: number, item: { id: string }): string {
     return item.id;
+  }
+
+  protected updateParticipants(userIds: string[]): void {
+    this.form.controls.participants.setValue(userIds);
+    this.form.controls.participants.markAsDirty();
+  }
+
+  protected fieldInvalid(fieldName: keyof typeof this.form.controls): boolean {
+    const control = this.form.controls[fieldName];
+    return control.invalid && (control.dirty || control.touched);
+  }
+
+  protected fieldError(fieldName: keyof typeof this.form.controls): string | null {
+    const control = this.form.controls[fieldName];
+
+    if (!this.fieldInvalid(fieldName)) {
+      return null;
+    }
+
+    if (control.errors?.['required']) {
+      const messages: Partial<Record<keyof typeof this.form.controls, string>> = {
+        name: 'Введите название события.',
+        type: 'Выберите тип события.',
+        startDate: 'Укажите дату и время начала.',
+        responsibleId: 'Выберите ответственного.',
+      };
+
+      return messages[fieldName] ?? 'Поле обязательно для заполнения.';
+    }
+
+    return 'Проверьте корректность заполнения поля.';
+  }
+
+  protected endDateError(): string | null {
+    return this.dateRangeInvalid() ? 'Дата окончания не может быть раньше даты начала.' : null;
   }
 
   private loadCalendar(): void {

@@ -90,12 +90,20 @@
         @if (canExtendEvent() && availableParticipantOptions().length) {
           <form class="details-form" [formGroup]="participantForm" (ngSubmit)="addParticipants()">
             <div class="form-field">
-              <label for="event-participants">Добавить участников</label>
-              <select id="event-participants" class="form-select-multiple" formControlName="userIds" multiple size="7">
-                @for (user of availableParticipantOptions(); track user.id) {
-                  <option [value]="user.id">{{ userOptionLabel(user) }}</option>
-                }
-              </select>
+              <label>Добавить участников</label>
+              <app-participant-selector
+                [options]="participantOptions()"
+                [selectedIds]="participantForm.controls.userIds.value"
+                [multiple]="true"
+                [invalid]="participantUsersInvalid()"
+                [listSize]="7"
+                searchPlaceholder="Найти участника по ФИО, логину или email"
+                noResultsText="Подходящие пользователи не найдены."
+                (selectionChange)="updateParticipantsSelection($event)"
+              />
+              @if (participantUsersError(); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="details-form__actions">
@@ -154,7 +162,16 @@
           <form class="details-form" [formGroup]="reminderForm" (ngSubmit)="createReminder()">
             <div class="form-field">
               <label for="event-remind-before">Напомнить за сколько часов</label>
-              <input id="event-remind-before" type="number" min="1" formControlName="remindBeforeHours" />
+              <input
+                id="event-remind-before"
+                type="number"
+                min="1"
+                formControlName="remindBeforeHours"
+                [class.input-invalid]="reminderFieldInvalid()"
+              />
+              @if (reminderFieldError(); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="details-form__actions">
@@ -208,15 +225,43 @@
           <form class="details-form details-form--triple" [formGroup]="metricForm" (ngSubmit)="createMetric()">
             <div class="form-field">
               <label for="metric-leads">Лиды</label>
-              <input id="metric-leads" type="number" min="0" formControlName="leads" />
+              <input
+                id="metric-leads"
+                type="number"
+                min="0"
+                formControlName="leads"
+                [class.input-invalid]="metricFieldInvalid('leads')"
+              />
+              @if (metricFieldError('leads'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
             <div class="form-field">
               <label for="metric-sales">Продажи</label>
-              <input id="metric-sales" type="number" min="0" formControlName="sales" />
+              <input
+                id="metric-sales"
+                type="number"
+                min="0"
+                formControlName="sales"
+                [class.input-invalid]="metricFieldInvalid('sales')"
+              />
+              @if (metricFieldError('sales'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
             <div class="form-field">
               <label for="metric-revenue">Выручка</label>
-              <input id="metric-revenue" type="number" min="0" step="0.01" formControlName="revenue" />
+              <input
+                id="metric-revenue"
+                type="number"
+                min="0"
+                step="0.01"
+                formControlName="revenue"
+                [class.input-invalid]="metricFieldInvalid('revenue')"
+              />
+              @if (metricFieldError('revenue'); as error) {
+                <small>{{ error }}</small>
+              }
             </div>
 
             <div class="details-form__actions details-form__actions--wide">
@@ -263,28 +308,60 @@
             <form class="details-form details-form--expense" [formGroup]="expenseForm" (ngSubmit)="createExpense()">
               <div class="form-field">
                 <label for="expense-name">Название расхода</label>
-                <input id="expense-name" type="text" formControlName="name" />
+                <input
+                  id="expense-name"
+                  type="text"
+                  formControlName="name"
+                  [class.input-invalid]="expenseFieldInvalid('name')"
+                />
+                @if (expenseFieldError('name'); as error) {
+                  <small>{{ error }}</small>
+                }
               </div>
               <div class="form-field">
                 <label for="expense-type">Тип</label>
-                <select id="expense-type" formControlName="type">
+                <select
+                  id="expense-type"
+                  formControlName="type"
+                  [class.input-invalid]="expenseFieldInvalid('type')"
+                >
                   <option value="ADVERTISING">Реклама</option>
                   <option value="RENT">Аренда</option>
                   <option value="CONTENT">Контент</option>
                   <option value="OTHER">Другое</option>
                 </select>
+                @if (expenseFieldError('type'); as error) {
+                  <small>{{ error }}</small>
+                }
               </div>
               <div class="form-field">
                 <label for="expense-price">Сумма</label>
-                <input id="expense-price" type="number" min="0" step="0.01" formControlName="price" />
+                <input
+                  id="expense-price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  formControlName="price"
+                  [class.input-invalid]="expenseFieldInvalid('price')"
+                />
+                @if (expenseFieldError('price'); as error) {
+                  <small>{{ error }}</small>
+                }
               </div>
               <div class="form-field">
                 <label for="expense-currency">Валюта</label>
-                <select id="expense-currency" formControlName="currency">
+                <select
+                  id="expense-currency"
+                  formControlName="currency"
+                  [class.input-invalid]="expenseFieldInvalid('currency')"
+                >
                   <option value="RUB">RUB</option>
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
                 </select>
+                @if (expenseFieldError('currency'); as error) {
+                  <small>{{ error }}</small>
+                }
               </div>
 
               <div class="details-form__actions details-form__actions--wide">

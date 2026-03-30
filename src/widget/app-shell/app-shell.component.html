@@ -83,17 +83,28 @@
       </a>
 
       @if (auth.access().canViewFinance) {
+        <a routerLink="/expenses" routerLinkActive="is-active" aria-label="Расходы" title="Расходы">
+          <span class="app-shell__nav-icon">
+            <app-ui-icon name="expenses" />
+          </span>
+          @if (!navigationCollapsed()) {
+            <strong>Расходы</strong>
+          }
+        </a>
+      }
+
+      @if (auth.access().canViewFinance) {
         <a
-          routerLink="/analytics"
+          routerLink="/ai-chat"
           routerLinkActive="is-active"
-          aria-label="ИИ-аналитика"
-          title="ИИ-аналитика"
+          aria-label="Чат с ИИ"
+          title="Чат с ИИ"
         >
           <span class="app-shell__nav-icon">
             <app-ui-icon name="analytics" />
           </span>
           @if (!navigationCollapsed()) {
-            <strong>ИИ-аналитика</strong>
+            <strong>Чат с ИИ</strong>
           }
         </a>
       }

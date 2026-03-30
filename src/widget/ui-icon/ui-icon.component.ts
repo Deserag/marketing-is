@@ -4,6 +4,7 @@ export type UiIconName =
   | 'dashboard'
   | 'projects'
   | 'events'
+  | 'expenses'
   | 'companies'
   | 'calendar'
   | 'analytics'
